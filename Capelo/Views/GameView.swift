@@ -4,6 +4,7 @@ struct GameView: View {
     @State private var viewModel = GameViewModel()
     @State private var barFillAnimating = false
     @State private var showPauseHint = false
+    @State private var showWords = false
     @Environment(\.colorScheme) private var colorScheme
 
     private var bgColor: Color { Palette.background(for: colorScheme) }
@@ -140,6 +141,21 @@ struct GameView: View {
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(bgColor.ignoresSafeArea())
+        .onChange(of: viewModel.isGameOver) {
+            if viewModel.isGameOver && !viewModel.foundWords.isEmpty {
+                showWords = true
+            }
+        }
+        .sheet(isPresented: $showWords) {
+            WordListView(
+                words: viewModel.foundWords,
+                score: viewModel.score,
+                onRestart: {
+                    showWords = false
+                    withAnimation { viewModel.setupGrid() }
+                }
+            )
+        }
     }
 
     private var wordColor: Color {
