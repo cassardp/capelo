@@ -31,7 +31,7 @@ struct TileView: View {
                 .font(.system(size: size * 0.45, weight: .bold, design: .rounded))
                 .foregroundStyle(tileText)
         }
-        .frame(width: size - 4, height: size - 4)
+        .frame(width: size - 6, height: size - 6)
         .scaleEffect(isBombFlashed ? 1.15 : 1.0)
         .brightness(isBombFlashed ? 0.3 : 0)
         .animation(.easeOut(duration: 0.12), value: isSelected)

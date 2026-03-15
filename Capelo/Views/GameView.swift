@@ -39,19 +39,20 @@ struct GameView: View {
             .animation(.easeOut(duration: 0.4), value: viewModel.isGameOver)
             .padding(.top, 32)
 
-            // Current word
-            Text(viewModel.currentWord.isEmpty ? " " : viewModel.currentWord)
-                .font(.title2.bold())
-                .foregroundStyle(wordColor)
-                .contentTransition(.numericText())
-                .animation(.easeOut(duration: 0.15), value: viewModel.currentWord)
-                .padding(.top, 8)
-
             Spacer()
 
             // Grid
             GridView(viewModel: viewModel)
                 .padding(.horizontal, 4)
+                .overlay(alignment: .top) {
+                    // Current word — overlaid so it doesn't push the grid down
+                    Text(viewModel.currentWord.isEmpty ? " " : viewModel.currentWord)
+                        .font(.title2.bold())
+                        .foregroundStyle(wordColor)
+                        .contentTransition(.numericText())
+                        .animation(.easeOut(duration: 0.15), value: viewModel.currentWord)
+                        .offset(y: -42)
+                }
 
             Spacer()
 
