@@ -15,6 +15,7 @@ struct WordListView: View {
     let words: [String]
     let score: Int
     let onRestart: () -> Void
+    var onShowLeaderboard: (() -> Void)?
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
     @State private var showList = false
@@ -37,6 +38,13 @@ struct WordListView: View {
                         .foregroundStyle(textColor.opacity(0.4))
                 }
                 Spacer()
+                if let onShowLeaderboard {
+                    Button { onShowLeaderboard() } label: {
+                        Image(systemName: "star")
+                            .font(.system(size: 22))
+                            .foregroundStyle(textColor)
+                    }
+                }
                 Button { onRestart() } label: {
                     Image(systemName: "arrow.counterclockwise")
                         .font(.system(size: 22))
@@ -57,7 +65,7 @@ struct WordListView: View {
                         .opacity(showList ? 1 : 0)
                         .animation(.easeOut(duration: 0.4).delay(0.05), value: showList)
 
-                    Text("\(uniqueWords.count) mot\(uniqueWords.count > 1 ? "s" : "") trouvé\(uniqueWords.count > 1 ? "s" : "")")
+                    Text("\(uniqueWords.count) word\(uniqueWords.count > 1 ? "s" : "") found")
                         .font(.subheadline.smallCaps())
                         .foregroundStyle(textColor.opacity(0.4))
                         .padding(.top, 4)

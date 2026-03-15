@@ -13,6 +13,12 @@ class GameViewModel {
         didSet { UserDefaults.standard.set(bestScore, forKey: "bestScore") }
     }
     var isNewBest = false
+    var playerName: String {
+        didSet { UserDefaults.standard.set(playerName, forKey: "playerName") }
+    }
+    var playerLink: String {
+        didSet { UserDefaults.standard.set(playerLink, forKey: "playerLink") }
+    }
     var bombFlashTiles: Set<UUID> = []
     var timeRemaining: Double = 45
     var isGameOver = false
@@ -37,6 +43,8 @@ class GameViewModel {
 
     init() {
         self.bestScore = UserDefaults.standard.integer(forKey: "bestScore")
+        self.playerName = UserDefaults.standard.string(forKey: "playerName") ?? ""
+        self.playerLink = UserDefaults.standard.string(forKey: "playerLink") ?? ""
         setupGrid()
         lightHaptic.prepare()
         mediumHaptic.prepare()
@@ -61,6 +69,18 @@ class GameViewModel {
     }
 
     // MARK: - Timer
+
+    func submitScore() {
+        guard !playerName.isEmpty, score > 0 else { return }
+        Task {
+            try? await API.submitScore(
+                playerName: playerName,
+                score: score,
+                link: playerLink.isEmpty ? nil : playerLink,
+                deviceId: deviceId
+            )
+        }
+    }
 
     private func startTimer() {
         timerTask?.cancel()
@@ -205,7 +225,7 @@ class GameViewModel {
         let positions = selectedPath
         let length = word.count
         let hasBomb = positions.contains { engine.grid[$0.0][$0.1].isBomb }
-        let points = 100 * (1 << max(0, length - 3)) * (hasBomb ? 3 : 1)
+        let points = 100 * (1 << max(0, length - 3)) * (hasBomb ? 5 : 1)
         score += points
         if score > bestScore {
             bestScore = score

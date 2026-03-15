@@ -5,6 +5,7 @@ struct TileView: View {
     let isSelected: Bool
     let isBombFlashed: Bool
     let wordValid: Bool?
+    let isPaused: Bool
     let size: CGFloat
     @Environment(\.colorScheme) private var colorScheme
 
@@ -34,8 +35,8 @@ struct TileView: View {
         ZStack {
             RoundedRectangle(cornerRadius: 8)
                 .fill(tileBackground)
-            Text(String(tile.character))
-                .font(.system(size: size * 0.45, weight: .bold, design: .rounded))
+            Text(isPaused ? "●" : String(tile.character))
+                .font(.system(size: isPaused ? size * 0.25 : size * 0.45, weight: .bold, design: .rounded))
                 .foregroundStyle(tileText)
         }
         .frame(width: size - 6, height: size - 6)

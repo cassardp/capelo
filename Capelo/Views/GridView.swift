@@ -56,6 +56,7 @@ struct GridView: View {
                         isSelected: viewModel.selectedTileIds.contains(tile.id),
                         isBombFlashed: viewModel.bombFlashTiles.contains(tile.id),
                         wordValid: viewModel.selectedTileIds.contains(tile.id) ? viewModel.lastWordValid : nil,
+                        isPaused: viewModel.isPaused,
                         size: tileSize
                     )
                     .offset(

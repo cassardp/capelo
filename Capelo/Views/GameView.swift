@@ -5,6 +5,8 @@ struct GameView: View {
     @State private var barFillAnimating = false
     @State private var showPauseHint = false
     @State private var showWords = false
+    @State private var showLeaderboard = false
+    @State private var leaderboardStartTab = 0
     @Environment(\.colorScheme) private var colorScheme
 
     private var bgColor: Color { Palette.background(for: colorScheme) }
@@ -92,13 +94,13 @@ struct GameView: View {
                 .animation(.easeOut(duration: 0.3), value: isUrgent)
                 .overlay(alignment: .top) {
                     if viewModel.isPaused {
-                        Text("pause")
+                        Text("paused")
                             .font(.caption.smallCaps())
                             .foregroundStyle(textColor.opacity(0.5))
                             .offset(y: -28)
                             .transition(.opacity)
                     } else if showPauseHint {
-                        Text("tap pour pause")
+                        Text("tap to pause")
                             .font(.caption.smallCaps())
                             .foregroundStyle(textColor.opacity(0.5))
                             .offset(y: -28)
@@ -130,21 +132,39 @@ struct GameView: View {
 
             Spacer()
 
-            // Restart button
-            Button { withAnimation { viewModel.setupGrid() } } label: {
-                Image(systemName: "arrow.counterclockwise")
-                    .font(.title)
-                    .foregroundStyle(textColor)
-                    .frame(width: 44, height: 44)
+            // Bottom button: leaderboard when paused, restart otherwise
+            if viewModel.isPaused {
+                Button {
+                    leaderboardStartTab = viewModel.playerName.isEmpty ? 1 : 0
+                    showLeaderboard = true
+                } label: {
+                    Image(systemName: "star")
+                        .font(.title)
+                        .foregroundStyle(textColor)
+                        .frame(width: 44, height: 44)
+                }
+                .padding(.bottom, 32)
+                .transition(.opacity)
+            } else {
+                Button { withAnimation { viewModel.setupGrid() } } label: {
+                    Image(systemName: "arrow.counterclockwise")
+                        .font(.title)
+                        .foregroundStyle(textColor)
+                        .frame(width: 44, height: 44)
+                }
+                .padding(.bottom, 32)
+                .transition(.opacity)
             }
-            .padding(.bottom, 32)
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(bgColor.ignoresSafeArea())
         .onChange(of: viewModel.isGameOver) {
-            if viewModel.isGameOver && !viewModel.foundWords.isEmpty {
-                showWords = true
+            if viewModel.isGameOver {
+                viewModel.submitScore()
+                if !viewModel.foundWords.isEmpty {
+                    showWords = true
+                }
             }
         }
         .sheet(isPresented: $showWords) {
@@ -154,6 +174,25 @@ struct GameView: View {
                 onRestart: {
                     showWords = false
                     withAnimation { viewModel.setupGrid() }
+                },
+                onShowLeaderboard: {
+                    showWords = false
+                    leaderboardStartTab = viewModel.playerName.isEmpty ? 1 : 0
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        showLeaderboard = true
+                    }
+                }
+            )
+        }
+        .sheet(isPresented: $showLeaderboard) {
+            LeaderboardView(
+                playerName: $viewModel.playerName,
+                playerLink: $viewModel.playerLink,
+                startTab: leaderboardStartTab,
+                highlightPlayerName: viewModel.isNewBest ? viewModel.playerName : nil,
+                onSave: {
+                    UserDefaults.standard.set(viewModel.playerName, forKey: "playerName")
+                    UserDefaults.standard.set(viewModel.playerLink, forKey: "playerLink")
                 }
             )
         }
