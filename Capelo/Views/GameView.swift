@@ -20,7 +20,7 @@ struct GameView: View {
                     .contentTransition(.numericText())
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)
-                    .background(viewModel.isNewBest ? Palette.orangeRed : textColor.opacity(0.12), in: Capsule())
+                    .background(viewModel.isNewBest ? Palette.orangeRed : (colorScheme == .dark ? textColor.opacity(0.12) : Palette.sand), in: Capsule())
                     .animation(.easeOut(duration: 0.3), value: viewModel.isNewBest)
                 if viewModel.isGameOver {
                     Text("Game Over")

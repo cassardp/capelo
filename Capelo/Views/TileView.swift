@@ -4,22 +4,29 @@ struct TileView: View {
     let tile: Tile
     let isSelected: Bool
     let isBombFlashed: Bool
+    let wordValid: Bool?
     let size: CGFloat
     @Environment(\.colorScheme) private var colorScheme
 
     @State private var shakeTrigger = false
 
     private var tileBackground: Color {
-        if isBombFlashed { return Palette.orangeRed }
-        if isSelected { return Palette.taupe }
-        if tile.isBomb { return Palette.orangeRed.opacity(0.15) }
-        return colorScheme == .dark ? Palette.espresso.opacity(0.8) : Palette.sand
+        if isBombFlashed { return colorScheme == .dark ? Palette.sand : Palette.espresso }
+        if isSelected {
+            switch wordValid {
+            case .some(true): return Palette.olive
+            case .some(false): return Palette.orangeRed
+            case .none: return Palette.taupe
+            }
+        }
+        if tile.isBomb { return colorScheme == .dark ? Palette.sand : Palette.espresso }
+        return colorScheme == .dark ? Palette.sand.opacity(0.12) : Palette.sand
     }
 
     private var tileText: Color {
-        if isBombFlashed { return Palette.cream }
+        if isBombFlashed { return colorScheme == .dark ? Palette.warmBlack : Palette.cream }
         if isSelected { return Palette.cream }
-        if tile.isBomb { return Palette.orangeRed }
+        if tile.isBomb { return colorScheme == .dark ? Palette.warmBlack : Palette.cream }
         return colorScheme == .dark ? Palette.sand : Palette.espresso
     }
 

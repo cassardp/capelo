@@ -26,6 +26,14 @@ struct GridView: View {
     @Bindable var viewModel: GameViewModel
     @Environment(\.colorScheme) private var colorScheme
 
+    private var selectionColor: Color {
+        switch viewModel.lastWordValid {
+        case .some(true): return Palette.olive
+        case .some(false): return Palette.orangeRed
+        case .none: return Palette.taupe
+        }
+    }
+
     var body: some View {
         GeometryReader { geo in
             let tileSize = geo.size.width / CGFloat(viewModel.engine.cols)
@@ -36,7 +44,7 @@ struct GridView: View {
                 if viewModel.selectedPath.count >= 2 {
                     SelectionLine(path: viewModel.selectedPath, tileSize: tileSize)
                         .stroke(
-                            Palette.taupe.opacity(0.5),
+                            selectionColor.opacity(0.5),
                             style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round)
                         )
                 }
@@ -47,6 +55,7 @@ struct GridView: View {
                         tile: tile,
                         isSelected: viewModel.selectedTileIds.contains(tile.id),
                         isBombFlashed: viewModel.bombFlashTiles.contains(tile.id),
+                        wordValid: viewModel.selectedTileIds.contains(tile.id) ? viewModel.lastWordValid : nil,
                         size: tileSize
                     )
                     .offset(

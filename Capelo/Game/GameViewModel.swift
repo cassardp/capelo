@@ -114,6 +114,7 @@ class GameViewModel {
         if selectedPath.isEmpty {
             selectedPath.append((row, col))
             currentWord = String(engine.grid[row][col].character)
+            updateLiveValidation()
             lightHaptic.impactOccurred(intensity: 0.4)
             return
         }
@@ -126,13 +127,17 @@ class GameViewModel {
             if prev.0 == row && prev.1 == col {
                 selectedPath.removeLast()
                 currentWord = String(selectedPath.map { engine.grid[$0.0][$0.1].character })
+                updateLiveValidation()
                 lightHaptic.impactOccurred(intensity: 0.3)
                 return
             }
         }
 
         // Already in path?
-        if selectedPath.contains(where: { $0.0 == row && $0.1 == col }) { return }
+        if selectedPath.contains(where: { $0.0 == row && $0.1 == col }) {
+            lightHaptic.impactOccurred(intensity: 0.2)
+            return
+        }
 
         // Must be adjacent to last tile (8 directions)
         let last = selectedPath.last!
@@ -142,13 +147,14 @@ class GameViewModel {
 
         selectedPath.append(current)
         currentWord = String(selectedPath.map { engine.grid[$0.0][$0.1].character })
+        updateLiveValidation()
         lightHaptic.impactOccurred(intensity: 0.5)
     }
 
     func handleDragEnd() {
         guard !isAnimating, !isGameOver else { return }
         guard selectedPath.count >= 3 else {
-            resetSelection()
+            Task { await animatedDeselect() }
             return
         }
 
@@ -159,9 +165,8 @@ class GameViewModel {
             lastWordValid = false
             mediumHaptic.impactOccurred(intensity: 0.8)
             Task {
-                try? await Task.sleep(for: .milliseconds(400))
-                lastWordValid = nil
-                resetSelection()
+                try? await Task.sleep(for: .milliseconds(300))
+                await animatedDeselect(keepColor: true)
             }
         }
     }
@@ -169,6 +174,26 @@ class GameViewModel {
     private func resetSelection() {
         selectedPath = []
         currentWord = ""
+    }
+
+    private func animatedDeselect(keepColor: Bool = false) async {
+        let savedValid = lastWordValid
+        while !selectedPath.isEmpty {
+            selectedPath.removeLast()
+            currentWord = String(selectedPath.map { engine.grid[$0.0][$0.1].character })
+            if keepColor { lastWordValid = savedValid }
+            try? await Task.sleep(for: .milliseconds(70))
+        }
+        currentWord = ""
+        lastWordValid = nil
+    }
+
+    private func updateLiveValidation() {
+        if currentWord.count >= 3 {
+            lastWordValid = validator.isValid(currentWord)
+        } else {
+            lastWordValid = nil
+        }
     }
 
     // MARK: - Word processing
@@ -195,8 +220,7 @@ class GameViewModel {
         withAnimation(.easeOut(duration: 0.18)) {
             engine.markMatched(at: positions)
         }
-        resetSelection()
-        lastWordValid = nil
+        selectedPath = []
 
         // Explode bombs
         let stages = engine.expandBombs(at: positions)
@@ -237,6 +261,8 @@ class GameViewModel {
         }
         try? await Task.sleep(for: .milliseconds(200))
 
+        currentWord = ""
+        lastWordValid = nil
         isAnimating = false
     }
 
