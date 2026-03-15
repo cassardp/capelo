@@ -1,10 +1,5 @@
 import SwiftUI
 
-struct ScorePopup: Identifiable {
-    let id = UUID()
-    let text: String
-}
-
 @Observable
 class GameViewModel {
     var engine = GridEngine()
@@ -12,7 +7,6 @@ class GameViewModel {
     var selectedPath: [(Int, Int)] = []
     var currentWord: String = ""
     var isAnimating = false
-    var scorePopups: [ScorePopup] = []
     var foundWords: [String] = []
     var lastWordValid: Bool?
     var bestScore: Int {
@@ -20,6 +14,11 @@ class GameViewModel {
     }
     var isNewBest = false
     var bombFlashTiles: Set<UUID> = []
+    var timeRemaining: Double = 45
+    var isGameOver = false
+    var hasStarted = false
+    var isPaused = false
+    var timerTask: Task<Void, Never>?
 
     private let validator = WordValidator()
     private let lightHaptic = UIImpactFeedbackGenerator(style: .light)
@@ -33,6 +32,9 @@ class GameViewModel {
         })
     }
 
+    private var timerStart: Date?
+    private var timerBudget: Double = 45
+
     init() {
         self.bestScore = UserDefaults.standard.integer(forKey: "bestScore")
         setupGrid()
@@ -40,22 +42,62 @@ class GameViewModel {
         mediumHaptic.prepare()
     }
 
+    deinit { timerTask?.cancel() }
+
     func setupGrid() {
         score = 0
         selectedPath = []
         currentWord = ""
         isAnimating = false
         isNewBest = false
-        scorePopups.removeAll()
+        isGameOver = false
+        hasStarted = false
+        isPaused = false
+        timerTask?.cancel()
+        timeRemaining = 45
         foundWords.removeAll()
         lastWordValid = nil
         engine.buildGrid()
     }
 
+    // MARK: - Timer
+
+    private func startTimer() {
+        timerTask?.cancel()
+        timerStart = Date.now
+        timerBudget = timeRemaining
+        timerTask = Task { @MainActor in
+            while !Task.isCancelled && timeRemaining > 0 {
+                try? await Task.sleep(for: .milliseconds(200))
+                guard !Task.isCancelled else { return }
+                if isPaused {
+                    timerStart = Date.now
+                    timerBudget = timeRemaining
+                    continue
+                }
+                let elapsed = Date.now.timeIntervalSince(timerStart!)
+                timeRemaining = max(0, timerBudget - elapsed)
+                if timeRemaining <= 0 { isGameOver = true }
+            }
+        }
+    }
+
+    func togglePause() { isPaused.toggle() }
+
+    private func addTime(length: Int, hasBomb: Bool) {
+        let base: Double = timeRemaining <= 10 ? 8.0 : 5.0
+        var bonus = base + Double(max(0, length - 3)) * 3.0
+        if hasBomb { bonus += 8 }
+        timeRemaining = min(90, timeRemaining + bonus)
+        timerStart = Date.now
+        timerBudget = timeRemaining
+    }
+
     // MARK: - Drag handling
 
     func handleDrag(at location: CGPoint, tileSize: CGFloat) {
-        guard !isAnimating else { return }
+        guard !isAnimating, !isGameOver, !isPaused else { return }
+        if !hasStarted { hasStarted = true; startTimer() }
 
         // Require finger to be within 40% radius of tile center
         let centerThreshold = tileSize * 0.4
@@ -104,7 +146,7 @@ class GameViewModel {
     }
 
     func handleDragEnd() {
-        guard !isAnimating else { return }
+        guard !isAnimating, !isGameOver else { return }
         guard selectedPath.count >= 3 else {
             resetSelection()
             return
@@ -147,7 +189,7 @@ class GameViewModel {
         foundWords.append(word)
 
         heavyHaptic.impactOccurred(intensity: min(1.0, 0.5 + Double(length) * 0.1))
-        showPopup(hasBomb ? "+\(points) BOOM" : "+\(points)")
+        addTime(length: length, hasBomb: hasBomb)
 
         // Mark word tiles
         withAnimation(.easeOut(duration: 0.18)) {
@@ -184,7 +226,7 @@ class GameViewModel {
             engine.applyGravityAndSpawn()
         }
         // Spawn bomb if word was 5+ letters
-        if length >= 5 {
+        if length >= 4 {
             engine.spawnBomb()
         }
         try? await Task.sleep(for: .milliseconds(50))
@@ -198,15 +240,4 @@ class GameViewModel {
         isAnimating = false
     }
 
-    private func showPopup(_ text: String) {
-        let popup = ScorePopup(text: text)
-        withAnimation(.spring(duration: 0.3)) {
-            scorePopups.append(popup)
-        }
-        let popupId = popup.id
-        Task {
-            try? await Task.sleep(for: .milliseconds(900))
-            withAnimation { scorePopups.removeAll { $0.id == popupId } }
-        }
-    }
 }

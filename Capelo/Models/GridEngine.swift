@@ -26,6 +26,15 @@ struct GridEngine {
             }
             grid.append(rowTiles)
         }
+        let bombCount = Int.random(in: 1...2)
+        var placed = 0
+        while placed < bombCount {
+            let r = Int.random(in: 0..<rows)
+            let c = Int.random(in: 0..<cols)
+            guard !grid[r][c].isBomb else { continue }
+            grid[r][c].isBomb = true
+            placed += 1
+        }
     }
 
     func neighbors(of row: Int, col: Int) -> [(Int, Int)] {

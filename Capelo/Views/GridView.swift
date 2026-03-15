@@ -36,7 +36,7 @@ struct GridView: View {
                 if viewModel.selectedPath.count >= 2 {
                     SelectionLine(path: viewModel.selectedPath, tileSize: tileSize)
                         .stroke(
-                            Palette.blueGray.opacity(0.5),
+                            Palette.taupe.opacity(0.5),
                             style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round)
                         )
                 }

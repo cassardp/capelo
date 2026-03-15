@@ -13,6 +13,7 @@ struct CapeloApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .fontDesign(.rounded)
         }
     }
 }

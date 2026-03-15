@@ -11,7 +11,7 @@ struct TileView: View {
 
     private var tileBackground: Color {
         if isBombFlashed { return Palette.orangeRed }
-        if isSelected { return Palette.blueGray }
+        if isSelected { return Palette.taupe }
         if tile.isBomb { return Palette.orangeRed.opacity(0.15) }
         return colorScheme == .dark ? Palette.espresso.opacity(0.8) : Palette.sand
     }
