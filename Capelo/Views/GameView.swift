@@ -4,7 +4,6 @@ struct GameView: View {
     @State private var viewModel = GameViewModel()
     @State private var barFillAnimating = false
     @State private var showPauseHint = false
-    @State private var showWords = false
     @State private var showLeaderboard = false
     @State private var leaderboardStartTab = 0
     @Environment(\.colorScheme) private var colorScheme
@@ -53,7 +52,7 @@ struct GameView: View {
                         .foregroundStyle(wordColor)
                         .contentTransition(.numericText())
                         .animation(.easeOut(duration: 0.15), value: viewModel.currentWord)
-                        .offset(y: -42)
+                        .offset(y: -45)
                 }
 
             Spacer()
@@ -162,34 +161,16 @@ struct GameView: View {
         .onChange(of: viewModel.isGameOver) {
             if viewModel.isGameOver {
                 viewModel.submitScore()
-                if !viewModel.foundWords.isEmpty {
-                    showWords = true
-                }
+                leaderboardStartTab = viewModel.playerName.isEmpty ? 1 : 0
+                showLeaderboard = true
             }
-        }
-        .sheet(isPresented: $showWords) {
-            WordListView(
-                words: viewModel.foundWords,
-                score: viewModel.score,
-                onRestart: {
-                    showWords = false
-                    withAnimation { viewModel.setupGrid() }
-                },
-                onShowLeaderboard: {
-                    showWords = false
-                    leaderboardStartTab = viewModel.playerName.isEmpty ? 1 : 0
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        showLeaderboard = true
-                    }
-                }
-            )
         }
         .sheet(isPresented: $showLeaderboard) {
             LeaderboardView(
                 playerName: $viewModel.playerName,
                 playerLink: $viewModel.playerLink,
                 startTab: leaderboardStartTab,
-                highlightPlayerName: viewModel.isNewBest ? viewModel.playerName : nil,
+                highlightPlayerName: viewModel.isNewBest && !viewModel.playerName.isEmpty ? viewModel.playerName : nil,
                 onSave: {
                     UserDefaults.standard.set(viewModel.playerName, forKey: "playerName")
                     UserDefaults.standard.set(viewModel.playerLink, forKey: "playerLink")
