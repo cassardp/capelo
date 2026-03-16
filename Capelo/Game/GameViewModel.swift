@@ -19,6 +19,9 @@ class GameViewModel {
     var playerLink: String {
         didSet { UserDefaults.standard.set(playerLink, forKey: "playerLink") }
     }
+    var bonusText: String = ""
+    var bonusPoints: Int = 0
+    var bonusTrigger: Int = 0
     var bombFlashTiles: Set<UUID> = []
     var timeRemaining: Double = 45
     var isGameOver = false
@@ -65,6 +68,8 @@ class GameViewModel {
         timeRemaining = 45
         foundWords.removeAll()
         lastWordValid = nil
+        bonusText = ""
+        bonusPoints = 0
         engine.buildGrid()
     }
 
@@ -97,7 +102,12 @@ class GameViewModel {
                 }
                 let elapsed = Date.now.timeIntervalSince(timerStart!)
                 timeRemaining = max(0, timerBudget - elapsed)
-                if timeRemaining <= 0 { isGameOver = true }
+                if timeRemaining <= 0 {
+                    selectedPath = []
+                    currentWord = ""
+                    lastWordValid = nil
+                    isGameOver = true
+                }
             }
         }
     }
@@ -198,13 +208,13 @@ class GameViewModel {
 
     private func animatedDeselect(keepColor: Bool = false) async {
         let savedValid = lastWordValid
+        currentWord = ""
+        if !keepColor { lastWordValid = nil }
         while !selectedPath.isEmpty {
             selectedPath.removeLast()
-            currentWord = String(selectedPath.map { engine.grid[$0.0][$0.1].character })
             if keepColor { lastWordValid = savedValid }
             try? await Task.sleep(for: .milliseconds(70))
         }
-        currentWord = ""
         lastWordValid = nil
     }
 
@@ -236,6 +246,12 @@ class GameViewModel {
         heavyHaptic.impactOccurred(intensity: min(1.0, 0.5 + Double(length) * 0.1))
         addTime(length: length, hasBomb: hasBomb)
 
+        // Show points
+        currentWord = ""
+        bonusPoints = points
+        bonusText = "+\(points)"
+        bonusTrigger += 1
+
         // Mark word tiles
         withAnimation(.easeOut(duration: 0.18)) {
             engine.markMatched(at: positions)
@@ -246,31 +262,54 @@ class GameViewModel {
         let stages = engine.expandBombs(at: positions)
         if !stages.isEmpty {
             try? await Task.sleep(for: .milliseconds(200))
+            var allBlasted = Set<UUID>()
+            let wordTileIds = Set(positions.map { engine.grid[$0.0][$0.1].id })
             for stage in stages {
                 withAnimation(.easeOut(duration: 0.08)) {
                     bombFlashTiles = stage
                 }
                 heavyHaptic.impactOccurred(intensity: 1.0)
+
+                let newTiles = stage.subtracting(wordTileIds)
+                let stagePoints = newTiles.count * 50
+                score += stagePoints
+                if score > bestScore {
+                    bestScore = score
+                    isNewBest = true
+                }
+                bonusPoints += stagePoints
+                bonusText = "+\(bonusPoints)"
+                bonusTrigger += 1
+
                 try? await Task.sleep(for: .milliseconds(120))
                 withAnimation(.easeOut(duration: 0.1)) {
                     bombFlashTiles = []
                 }
+                allBlasted.formUnion(stage)
                 try? await Task.sleep(for: .milliseconds(60))
             }
-            let allBlasted = stages.reduce(into: Set<UUID>()) { $0.formUnion($1) }
             withAnimation(.easeOut(duration: 0.18)) {
                 engine.markMatchedByIds(allBlasted)
             }
         }
 
-        try? await Task.sleep(for: .milliseconds(200))
+        try? await Task.sleep(for: .milliseconds(400))
+        bonusText = ""
+        bonusPoints = 0
 
         // Gravity
         withAnimation(.spring(duration: 0.25)) {
             engine.applyGravityAndSpawn()
         }
-        // Spawn bomb if word was 5+ letters
-        if length >= 4 {
+        // Spawn bombs based on word length + bonus if chain explosion
+        let bombCount: Int = switch length {
+        case 4: 1
+        case 5: 2
+        case 6: 3
+        default: length >= 7 ? 4 : 0
+        }
+        let totalBombs = bombCount + (hasBomb && bombCount > 0 ? 1 : 0)
+        for _ in 0..<totalBombs {
             engine.spawnBomb()
         }
         try? await Task.sleep(for: .milliseconds(50))

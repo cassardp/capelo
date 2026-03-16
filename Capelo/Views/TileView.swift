@@ -6,6 +6,7 @@ struct TileView: View {
     let isBombFlashed: Bool
     let wordValid: Bool?
     let isPaused: Bool
+    let isGameOver: Bool
     let size: CGFloat
     @Environment(\.colorScheme) private var colorScheme
 
@@ -48,15 +49,25 @@ struct TileView: View {
             content.offset(x: value)
         } keyframes: { _ in
             let d: CGFloat = (tile.row + tile.col) % 2 == 0 ? 1 : -1
-            CubicKeyframe(4 * d, duration: 0.1)
-            CubicKeyframe(-3 * d, duration: 0.1)
-            CubicKeyframe(2 * d, duration: 0.1)
-            CubicKeyframe(-1 * d, duration: 0.1)
-            CubicKeyframe(0, duration: 0.1)
+            CubicKeyframe(4 * d, duration: 0.15)
+            CubicKeyframe(-3.5 * d, duration: 0.15)
+            CubicKeyframe(3.5 * d, duration: 0.18)
+            CubicKeyframe(-3 * d, duration: 0.18)
+            CubicKeyframe(2.5 * d, duration: 0.2)
+            CubicKeyframe(-2 * d, duration: 0.2)
+            CubicKeyframe(1.5 * d, duration: 0.22)
+            CubicKeyframe(-1 * d, duration: 0.22)
+            CubicKeyframe(0.5 * d, duration: 0.25)
+            CubicKeyframe(-0.2 * d, duration: 0.25)
+            CubicKeyframe(0, duration: 0.3)
         }
-    }
-
-    func shake() {
-        shakeTrigger.toggle()
+        .onChange(of: isGameOver) {
+            if isGameOver {
+                Task {
+                    try? await Task.sleep(for: .milliseconds((tile.row + tile.col) % 5 * 30))
+                    shakeTrigger.toggle()
+                }
+            }
+        }
     }
 }

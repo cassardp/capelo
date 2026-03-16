@@ -1,8 +1,18 @@
 import SwiftUI
 
 struct ContentView: View {
+    @State private var showSplash = true
+
     var body: some View {
-        GameView()
+        ZStack {
+            GameView()
+
+            if showSplash {
+                SplashView {
+                    showSplash = false
+                }
+            }
+        }
     }
 }
 

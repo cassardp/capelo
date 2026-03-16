@@ -1,5 +1,11 @@
 import SwiftUI
 
+struct BonusAnimValues {
+    var scale: CGFloat = 1.0
+    var brightness: Double = 0.0
+    var opacity: Double = 1.0
+}
+
 struct GameView: View {
     @State private var viewModel = GameViewModel()
     @State private var barFillAnimating = false
@@ -22,22 +28,67 @@ struct GameView: View {
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)
                     .background(viewModel.isNewBest ? Palette.orangeRed : (colorScheme == .dark ? textColor.opacity(0.12) : Palette.sand), in: Capsule())
+                    .keyframeAnimator(initialValue: CGFloat(1.0), trigger: viewModel.isNewBest) { content, scale in
+                        content.scaleEffect(scale)
+                    } keyframes: { _ in
+                        SpringKeyframe(1.3, duration: 0.15, spring: .bouncy)
+                        SpringKeyframe(1.0, duration: 0.25, spring: .smooth)
+                    }
                     .animation(.easeOut(duration: 0.3), value: viewModel.isNewBest)
                 if viewModel.isGameOver {
                     Text("Game Over")
                         .font(.system(size: 44, weight: .heavy))
                         .foregroundStyle(textColor)
-                        .transition(.asymmetric(insertion: .push(from: .bottom), removal: .identity))
+                        .transition(.blurReplace)
+                } else if !viewModel.currentWord.isEmpty {
+                    Text(viewModel.currentWord)
+                        .font(.system(size: 44, weight: .heavy))
+                        .foregroundStyle(wordColor)
+                        .keyframeAnimator(initialValue: CGFloat(1.0), trigger: viewModel.currentWord.count) { content, scale in
+                            content.scaleEffect(scale)
+                        } keyframes: { _ in
+                            SpringKeyframe(1.06, duration: 0.1, spring: .bouncy)
+                            SpringKeyframe(1.0, duration: 0.15, spring: .smooth)
+                        }
+                        .transition(.blurReplace)
+                } else if !viewModel.bonusText.isEmpty {
+                    Text(viewModel.bonusText)
+                        .font(.system(size: 44, weight: .heavy))
+                        .foregroundStyle(Palette.orange)
+                        .keyframeAnimator(
+                            initialValue: BonusAnimValues(),
+                            trigger: viewModel.bonusTrigger
+                        ) { content, values in
+                            content
+                                .scaleEffect(values.scale)
+                                .opacity(values.opacity)
+                                .brightness(values.brightness)
+                        } keyframes: { _ in
+                            KeyframeTrack(\.scale) {
+                                SpringKeyframe(1.2, duration: 0.12, spring: .bouncy)
+                                SpringKeyframe(1.0, duration: 0.2, spring: .smooth)
+                            }
+                            KeyframeTrack(\.brightness) {
+                                LinearKeyframe(0.6, duration: 0.08)
+                                LinearKeyframe(0.0, duration: 0.2)
+                            }
+                            KeyframeTrack(\.opacity) {
+                                LinearKeyframe(1.0, duration: 0.3)
+                            }
+                        }
+                        .transition(.blurReplace)
                 } else {
                     RollingCounter(
                         value: viewModel.score,
                         font: .system(size: 44, weight: .heavy),
                         color: textColor
                     )
-                    .transition(.asymmetric(insertion: .identity, removal: .push(from: .top)))
+                    .transition(.blurReplace)
                 }
             }
-            .animation(.easeOut(duration: 0.4), value: viewModel.isGameOver)
+            .animation(.easeInOut(duration: 0.3), value: viewModel.isGameOver)
+            .animation(.easeInOut(duration: 0.2), value: viewModel.currentWord.isEmpty)
+            .animation(.easeInOut(duration: 0.25), value: viewModel.bonusText.isEmpty)
             .padding(.top, 32)
 
             Spacer()
@@ -45,15 +96,6 @@ struct GameView: View {
             // Grid
             GridView(viewModel: viewModel)
                 .padding(.horizontal, 4)
-                .overlay(alignment: .top) {
-                    // Current word — overlaid so it doesn't push the grid down
-                    Text(viewModel.currentWord.isEmpty ? " " : viewModel.currentWord)
-                        .font(.title2.bold())
-                        .foregroundStyle(wordColor)
-                        .contentTransition(.numericText())
-                        .animation(.easeOut(duration: 0.15), value: viewModel.currentWord)
-                        .offset(y: -45)
-                }
 
             Spacer()
 
@@ -162,7 +204,10 @@ struct GameView: View {
             if viewModel.isGameOver {
                 viewModel.submitScore()
                 leaderboardStartTab = viewModel.playerName.isEmpty ? 1 : 0
-                showLeaderboard = true
+                Task {
+                    try? await Task.sleep(for: .seconds(2.5))
+                    showLeaderboard = true
+                }
             }
         }
         .sheet(isPresented: $showLeaderboard) {
