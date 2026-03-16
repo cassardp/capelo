@@ -12,6 +12,7 @@ struct GameView: View {
     @State private var showPauseHint = false
     @State private var showLeaderboard = false
     @State private var leaderboardStartTab = 0
+    @State private var showRestartConfirm = false
     @Environment(\.colorScheme) private var colorScheme
 
     private var bgColor: Color { Palette.background(for: colorScheme) }
@@ -173,13 +174,22 @@ struct GameView: View {
 
             Spacer()
 
-            // Bottom button: leaderboard when paused, restart otherwise
-            if viewModel.isPaused {
+            // Bottom button
+            if !viewModel.hasStarted || viewModel.isPaused {
                 Button {
                     leaderboardStartTab = viewModel.playerName.isEmpty ? 1 : 0
                     showLeaderboard = true
                 } label: {
                     Image(systemName: "star")
+                        .font(.title)
+                        .foregroundStyle(textColor)
+                        .frame(width: 44, height: 44)
+                }
+                .padding(.bottom, 32)
+                .transition(.opacity)
+            } else if viewModel.hasStarted && !viewModel.isGameOver {
+                Button { showRestartConfirm = true } label: {
+                    Image(systemName: "arrow.counterclockwise")
                         .font(.title)
                         .foregroundStyle(textColor)
                         .frame(width: 44, height: 44)
@@ -210,6 +220,52 @@ struct GameView: View {
                 }
             }
         }
+        .overlay {
+            if showRestartConfirm {
+                Color.black.opacity(0.4)
+                    .ignoresSafeArea()
+                    .onTapGesture { withAnimation { showRestartConfirm = false } }
+                VStack(spacing: 20) {
+                    Text("New game?")
+                        .font(.title2.bold())
+                        .foregroundStyle(textColor)
+                    Text("Your current game will be lost.")
+                        .font(.subheadline)
+                        .foregroundStyle(textColor.opacity(0.7))
+                    HStack(spacing: 16) {
+                        Button {
+                            withAnimation { showRestartConfirm = false }
+                        } label: {
+                            Text("Cancel")
+                                .font(.body.bold())
+                                .foregroundStyle(textColor)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(textColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
+                        }
+                        Button {
+                            withAnimation {
+                                showRestartConfirm = false
+                                viewModel.setupGrid()
+                            }
+                        } label: {
+                            Text("Restart")
+                                .font(.body.bold())
+                                .foregroundStyle(bgColor)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(Palette.orangeRed, in: RoundedRectangle(cornerRadius: 12))
+                        }
+                    }
+                }
+                .padding(24)
+                .background(bgColor, in: RoundedRectangle(cornerRadius: 20))
+                .shadow(color: .black.opacity(0.2), radius: 20)
+                .padding(.horizontal, 40)
+                .transition(.scale.combined(with: .opacity))
+            }
+        }
+        .animation(.spring(duration: 0.3), value: showRestartConfirm)
         .sheet(isPresented: $showLeaderboard) {
             LeaderboardView(
                 playerName: $viewModel.playerName,

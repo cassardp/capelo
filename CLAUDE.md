@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Capelo (internal name: Rhooo) — a French word game (Boggle-style) for iOS, built with pure SwiftUI. Players drag across a 7×7 letter grid to form French words (≥3 letters). Bombs spawn on 5+ letter words.
+Capelo (internal name: Rhooo) — a French word game (Boggle-style) for iOS, built with pure SwiftUI. Players drag across a 7×7 letter grid to form French words (≥3 letters). Bombs spawn on 4+ letter words and chain-explode nearby tiles.
 
 ## Build
 
@@ -12,7 +12,7 @@ Capelo (internal name: Rhooo) — a French word game (Boggle-style) for iOS, bui
 xcodebuild -project Capelo.xcodeproj -scheme Capelo -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 16'
 ```
 
-No SPM dependencies, no Podfile, no external packages.
+No external dependencies (pure SwiftUI + CryptoKit for HMAC).
 
 - Xcode 26.3+, iOS 26.2 deployment target
 - Swift 5.9+ (uses `@Observable` macro)
@@ -21,16 +21,31 @@ No SPM dependencies, no Podfile, no external packages.
 
 MVVM pattern with three layers:
 
-- **Models** (`Models/`): `Tile` (struct, letter on grid), `GridEngine` (7×7 grid logic, gravity, bomb expansion, tile spawning)
-- **Game** (`Game/`): `GameViewModel` (@Observable, orchestrates gameplay — drag handling, word validation, scoring, animations), `LetterGenerator` (French Scrabble frequency distribution, vowel balancing), `WordValidator` (loads `french_words.txt` dictionary, 232K words)
-- **Views** (`Views/`): `GameView` (main screen), `GridView` (grid + drag gesture + selection line), `TileView` (animated tile), `ScoreView` (rolling counter), `Palette` (color theme with hex parsing)
+- **Models** (`Models/`): `Tile` (letter on grid), `GridEngine` (7×7 grid logic, gravity, bomb expansion, tile spawning), `ScoreEntry` (Codable leaderboard entry)
+- **Game** (`Game/`): `GameViewModel` (@Observable, orchestrates gameplay — drag, validation, scoring, timer, animations), `LetterGenerator` (French Scrabble frequency distribution, 40% vowel ratio), `WordValidator` (loads `french_words.txt`, 232K words), `API` (leaderboard networking with HMAC-SHA256 signing), `DeviceId` (persistent UUID via UserDefaults), `Secrets` (HMAC key)
+- **Views** (`Views/`): `GameView` (main screen + timer bar), `GridView` (grid + drag gesture + selection line), `TileView` (animated tile with keyframe shake/flash), `ScoreView` (rolling counter), `SplashView` (animated launch screen), `LeaderboardView` (3-tab modal: scores/profile/info), `WordListView` (game over summary with dictionary lookup), `Palette` (color theme with hex parsing)
 
-Entry point: `RhoooApp.swift` → `ContentView.swift` → `GameView`
+Entry point: `CapeloApp.swift` → `ContentView.swift` (splash overlay) → `GameView`
 
 ## Key mechanics
 
-- Scoring: `100 × 2^max(0, length-3) × (hasBomb ? 3 : 1)`
+- Scoring: `100 × length × max(1, length-3) × (hasBomb ? 3 : 1)` + 50 pts per bomb chain tile
+- Timer: 45s base, +5-8s per valid word (+3s per letter above 3, +8s if bomb), max 90s
+- Bombs: spawn from 4+ letter words (count scales with length), 3×3 blast radius
 - Drag: 8-directional adjacency, 40% radius threshold, backtrack support
-- Haptics: light/medium/heavy feedback at different interaction points
-- Persistence: `UserDefaults` for best score only
-- Orientation: portrait locked via AppDelegate
+- Haptics: light (tile touch), medium (invalid), heavy (valid word + bombs)
+
+## Networking & API
+
+- Base URL: `https://gribli-api.cassard.workers.dev`
+- Auth: HMAC-SHA256 signing with `X-Signature` header + millisecond timestamp
+- Endpoints: `POST /scores` (submit), `GET /scores?game=capelo` (leaderboard), `PUT /profile` (username + link)
+- Error handling: 409 = name taken, other = server error
+
+## Persistence (UserDefaults)
+
+`bestScore`, `playerName`, `playerLink`, `deviceId` (UUID generated once on first launch)
+
+## Orientation
+
+Portrait locked via `AppDelegate` in `CapeloApp.swift`.

@@ -151,21 +151,12 @@ class GameViewModel {
 
         let current = (row, col)
 
-        // Backtrack: if user goes back to second-to-last tile, remove last
-        if selectedPath.count >= 2 {
-            let prev = selectedPath[selectedPath.count - 2]
-            if prev.0 == row && prev.1 == col {
-                selectedPath.removeLast()
-                currentWord = String(selectedPath.map { engine.grid[$0.0][$0.1].character })
-                updateLiveValidation()
-                lightHaptic.impactOccurred(intensity: 0.3)
-                return
-            }
-        }
-
-        // Already in path?
-        if selectedPath.contains(where: { $0.0 == row && $0.1 == col }) {
-            lightHaptic.impactOccurred(intensity: 0.2)
+        // Backtrack: if user goes back to any tile already in the path, truncate
+        if let index = selectedPath.firstIndex(where: { $0.0 == row && $0.1 == col }) {
+            selectedPath = Array(selectedPath.prefix(index + 1))
+            currentWord = String(selectedPath.map { engine.grid[$0.0][$0.1].character })
+            updateLiveValidation()
+            lightHaptic.impactOccurred(intensity: 0.3)
             return
         }
 
@@ -235,7 +226,8 @@ class GameViewModel {
         let positions = selectedPath
         let length = word.count
         let hasBomb = positions.contains { engine.grid[$0.0][$0.1].isBomb }
-        let points = 100 * (1 << max(0, length - 3)) * (hasBomb ? 5 : 1)
+        let multiplier = max(1, length - 3)
+        let points = 100 * length * multiplier * (hasBomb ? 3 : 1)
         score += points
         if score > bestScore {
             bestScore = score
