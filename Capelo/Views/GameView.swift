@@ -37,7 +37,7 @@ struct GameView: View {
                     }
                     .animation(.easeOut(duration: 0.3), value: viewModel.isNewBest)
                 if viewModel.isGameOver {
-                    Text("Game Over")
+                    Text(Strings.get("gameOver", language: viewModel.language))
                         .font(.system(size: 44, weight: .heavy))
                         .foregroundStyle(textColor)
                         .transition(.blurReplace)
@@ -136,13 +136,13 @@ struct GameView: View {
                 .animation(.easeOut(duration: 0.3), value: isUrgent)
                 .overlay(alignment: .top) {
                     if viewModel.isPaused {
-                        Text("paused")
+                        Text(Strings.get("paused", language: viewModel.language))
                             .font(.caption.smallCaps())
                             .foregroundStyle(textColor.opacity(0.5))
                             .offset(y: -28)
                             .transition(.opacity)
                     } else if showPauseHint {
-                        Text("tap to pause")
+                        Text(Strings.get("tapToPause", language: viewModel.language))
                             .font(.caption.smallCaps())
                             .foregroundStyle(textColor.opacity(0.5))
                             .offset(y: -28)
@@ -210,6 +210,7 @@ struct GameView: View {
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(bgColor.ignoresSafeArea())
+        .environment(\.gameLanguage, viewModel.language)
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in
             if viewModel.hasStarted && !viewModel.isGameOver && !viewModel.isPaused {
                 viewModel.togglePause()
@@ -231,17 +232,17 @@ struct GameView: View {
                     .ignoresSafeArea()
                     .onTapGesture { withAnimation { showRestartConfirm = false } }
                 VStack(spacing: 20) {
-                    Text("New game?")
+                    Text(Strings.get("newGame", language: viewModel.language))
                         .font(.title2.bold())
                         .foregroundStyle(textColor)
-                    Text("Your current game will be lost.")
+                    Text(Strings.get("currentGameLost", language: viewModel.language))
                         .font(.subheadline)
                         .foregroundStyle(textColor.opacity(0.7))
                     HStack(spacing: 16) {
                         Button {
                             withAnimation { showRestartConfirm = false }
                         } label: {
-                            Text("Cancel")
+                            Text(Strings.get("cancel", language: viewModel.language))
                                 .font(.body.bold())
                                 .foregroundStyle(textColor)
                                 .frame(maxWidth: .infinity)
@@ -254,7 +255,7 @@ struct GameView: View {
                                 viewModel.setupGrid()
                             }
                         } label: {
-                            Text("Restart")
+                            Text(Strings.get("restart", language: viewModel.language))
                                 .font(.body.bold())
                                 .foregroundStyle(bgColor)
                                 .frame(maxWidth: .infinity)
@@ -275,6 +276,7 @@ struct GameView: View {
             LeaderboardView(
                 playerName: $viewModel.playerName,
                 playerLink: $viewModel.playerLink,
+                language: Binding(get: { viewModel.language }, set: { viewModel.language = $0 }),
                 startTab: leaderboardStartTab,
                 highlightPlayerName: viewModel.isNewBest && !viewModel.playerName.isEmpty ? viewModel.playerName : nil,
                 onSave: {

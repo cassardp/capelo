@@ -14,6 +14,7 @@ private extension View {
 struct LeaderboardView: View {
     @Binding var playerName: String
     @Binding var playerLink: String
+    @Binding var language: GameLanguage
     var highlightPlayerName: String?
     var onSave: (() async -> Void)?
 
@@ -33,9 +34,10 @@ struct LeaderboardView: View {
     private var textColor: Color { Palette.text(for: colorScheme) }
     private var bestScore: Int { UserDefaults.standard.integer(forKey: "bestScore") }
 
-    init(playerName: Binding<String>, playerLink: Binding<String>, startTab: Int = 0, highlightPlayerName: String? = nil, onSave: (() async -> Void)? = nil) {
+    init(playerName: Binding<String>, playerLink: Binding<String>, language: Binding<GameLanguage>, startTab: Int = 0, highlightPlayerName: String? = nil, onSave: (() async -> Void)? = nil) {
         _playerName = playerName
         _playerLink = playerLink
+        _language = language
         _selectedTab = State(initialValue: startTab)
         self.highlightPlayerName = highlightPlayerName
         self.onSave = onSave
@@ -90,14 +92,14 @@ struct LeaderboardView: View {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if entries.isEmpty {
-                Text("No scores yet")
+                Text(Strings.get("noScoresYet", language: language))
                     .foregroundStyle(textColor.opacity(0.4))
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollViewReader { proxy in
                     ScrollView {
                         VStack(spacing: 0) {
-                            Text("All Stars")
+                            Text(Strings.get("allStars", language: language))
                                 .font(.title2.weight(.bold))
                                 .foregroundStyle(textColor)
                                 .frame(maxWidth: .infinity)
@@ -191,7 +193,7 @@ struct LeaderboardView: View {
     private var profilePage: some View {
         ScrollView {
             VStack(spacing: 0) {
-                Text("Profile")
+                Text(Strings.get("profile", language: language))
                     .font(.title2.weight(.bold))
                     .foregroundStyle(textColor)
                     .frame(maxWidth: .infinity)
@@ -199,7 +201,7 @@ struct LeaderboardView: View {
                     .padding(.top, 12)
                     .padding(.bottom, 20)
 
-                Text("Displayed on All Stars.")
+                Text(Strings.get("displayedOnAllStars", language: language))
                     .font(.body)
                     .foregroundStyle(textColor.opacity(0.8))
                     .multilineTextAlignment(.center)
@@ -208,7 +210,7 @@ struct LeaderboardView: View {
                     .padding(.bottom, 24)
 
                 VStack(spacing: 10) {
-                    profileField(icon: "person.fill", text: $playerName, placeholder: "Username", capitalization: .words, status: nameTaken ? .error : nil, highlighted: !playerLink.isEmpty, focusBinding: $focusedField, focusValue: .name)
+                    profileField(icon: "person.fill", text: $playerName, placeholder: Strings.get("username", language: language), capitalization: .words, status: nameTaken ? .error : nil, highlighted: !playerLink.isEmpty, focusBinding: $focusedField, focusValue: .name)
                         .onChange(of: playerName) { nameTaken = false }
                         .overlay(alignment: .trailing) {
                             if focusedField != .name && bestScore > 0 {
@@ -220,9 +222,32 @@ struct LeaderboardView: View {
                             }
                         }
                         .animation(.easeOut(duration: 0.2), value: focusedField)
-                    profileField(icon: "link", text: $playerLink, placeholder: "Link (optional)", keyboard: .URL, highlighted: false, focusBinding: $focusedField, focusValue: .link)
+                    profileField(icon: "link", text: $playerLink, placeholder: Strings.get("linkOptional", language: language), keyboard: .URL, highlighted: false, focusBinding: $focusedField, focusValue: .link)
                 }
                 .padding(.horizontal, 20)
+
+                HStack(spacing: 12) {
+                    Circle()
+                        .fill(Palette.olive)
+                        .frame(width: 36, height: 36)
+                        .overlay(
+                            Image(systemName: "globe")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(Palette.cream)
+                        )
+                    Picker(Strings.get("language", language: language), selection: $language) {
+                        ForEach(GameLanguage.allCases, id: \.self) { lang in
+                            Text(lang.displayName).tag(lang)
+                        }
+                    }
+                    .tint(textColor)
+                    Spacer()
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+                .background(textColor.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
+                .padding(.horizontal, 20)
+                .padding(.top, 24)
 
                 if profileHasChanges {
                     Button {
@@ -252,7 +277,7 @@ struct LeaderboardView: View {
                                 ProgressView()
                                     .tint(bgColor)
                             } else {
-                                Text("Save")
+                                Text(Strings.get("save", language: language))
                             }
                         }
                         .font(.body.weight(.medium))
@@ -306,14 +331,14 @@ struct LeaderboardView: View {
         GeometryReader { geo in
             ScrollView {
                 VStack(spacing: 28) {
-                    Text("About Capelo")
+                    Text(Strings.get("aboutCapelo", language: language))
                         .font(.title2.weight(.bold))
                         .foregroundStyle(textColor)
                         .frame(maxWidth: .infinity)
                         .padding(.top, 12)
                         .padding(.bottom, -8)
 
-                    Text("Capelo is a minimalist French word game (free, no ads, no tracking, no in-app purchases, forever). Drag across the grid to form words and chase the high score. Add a link to your profile to showcase your project on the leaderboard.")
+                    Text(Strings.get("aboutDescription", language: language))
                         .font(.body)
                         .foregroundStyle(textColor.opacity(0.8))
                         .multilineTextAlignment(.center)
@@ -325,12 +350,12 @@ struct LeaderboardView: View {
                     VStack(spacing: 10) {
                         infoLink(
                             icon: "at",
-                            label: "Follow me on Twitter",
+                            label: Strings.get("followTwitter", language: language),
                             url: "https://x.com/patricecassard"
                         )
                         infoLink(
                             icon: "pin.fill",
-                            label: "Try Pinpin (my other app)",
+                            label: Strings.get("tryPinpin", language: language),
                             url: "https://apps.apple.com/fr/app/pinpin-mobile/id6748907154"
                         )
                     }

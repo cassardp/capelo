@@ -18,6 +18,7 @@ struct WordListView: View {
     var onShowLeaderboard: (() -> Void)?
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.gameLanguage) private var language
     @State private var showList = false
     @State private var selectedWord: String?
 
@@ -65,7 +66,7 @@ struct WordListView: View {
                         .opacity(showList ? 1 : 0)
                         .animation(.easeOut(duration: 0.4).delay(0.05), value: showList)
 
-                    Text("\(uniqueWords.count) word\(uniqueWords.count > 1 ? "s" : "") found")
+                    Text("\(uniqueWords.count) \(Strings.get("wordsFound", language: language))")
                         .font(.subheadline.smallCaps())
                         .foregroundStyle(textColor.opacity(0.4))
                         .padding(.top, 4)

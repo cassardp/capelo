@@ -4,12 +4,14 @@ struct GridEngine {
     var grid: [[Tile]] = []
     let rows: Int
     let cols: Int
+    var letterGenerator: LetterGenerator
 
     var allTiles: [Tile] { grid.flatMap { $0 } }
 
-    init(rows: Int = 7, cols: Int = 7) {
+    init(rows: Int = 7, cols: Int = 7, language: GameLanguage = .english) {
         self.rows = rows
         self.cols = cols
+        self.letterGenerator = LetterGenerator(language: language)
     }
 
     mutating func buildGrid() {
@@ -19,7 +21,7 @@ struct GridEngine {
             for col in 0..<cols {
                 rowTiles.append(Tile(
                     id: UUID(),
-                    character: LetterGenerator.random(),
+                    character: letterGenerator.random(),
                     row: row,
                     col: col
                 ))
@@ -99,7 +101,7 @@ struct GridEngine {
         for row in grid {
             for tile in row where !tile.isMatched {
                 t += 1
-                if LetterGenerator.vowels.contains(tile.character) { v += 1 }
+                if letterGenerator.vowels.contains(tile.character) { v += 1 }
             }
         }
         return (v, t)
@@ -123,12 +125,12 @@ struct GridEngine {
             }
             let emptyCount = rows - surviving.count
             for i in 0..<emptyCount {
-                let char = LetterGenerator.random(
+                let char = letterGenerator.random(
                     currentVowelCount: stats.vowels,
                     currentTotal: stats.total
                 )
                 stats.total += 1
-                if LetterGenerator.vowels.contains(char) { stats.vowels += 1 }
+                if letterGenerator.vowels.contains(char) { stats.vowels += 1 }
                 grid[i][col] = Tile(
                     id: UUID(),
                     character: char,

@@ -14,6 +14,7 @@ struct SplashView: View {
     @State private var dismissScale: CGFloat = 1.0
     @State private var dismissOpacity: Double = 1.0
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.gameLanguage) private var language
 
     private var bgColor: Color { Palette.background(for: colorScheme) }
     private var textColor: Color { Palette.text(for: colorScheme) }
@@ -41,7 +42,7 @@ struct SplashView: View {
                 HStack(spacing: 10) {
                     Image(systemName: "play.fill")
                         .font(.title2)
-                    Text("Play")
+                    Text(Strings.get("play", language: language))
                         .font(.title2.bold())
                 }
                 .foregroundStyle(bgColor)

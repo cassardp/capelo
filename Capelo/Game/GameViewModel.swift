@@ -2,7 +2,13 @@ import SwiftUI
 
 @Observable
 class GameViewModel {
-    var engine = GridEngine()
+    var language: GameLanguage {
+        didSet {
+            UserDefaults.standard.set(language.rawValue, forKey: "gameLanguage")
+            setupGrid()
+        }
+    }
+    var engine: GridEngine
     var score = 0
     var selectedPath: [(Int, Int)] = []
     var currentWord: String = ""
@@ -29,7 +35,7 @@ class GameViewModel {
     var isPaused = false
     var timerTask: Task<Void, Never>?
 
-    private let validator = WordValidator()
+    private var validator: WordValidator
     private let lightHaptic = UIImpactFeedbackGenerator(style: .light)
     private let mediumHaptic = UIImpactFeedbackGenerator(style: .medium)
     private let heavyHaptic = UIImpactFeedbackGenerator(style: .heavy)
@@ -45,6 +51,17 @@ class GameViewModel {
     private var timerBudget: Double = 45
 
     init() {
+        let lang: GameLanguage
+        if let saved = UserDefaults.standard.string(forKey: "gameLanguage"),
+           let parsed = GameLanguage(rawValue: saved) {
+            lang = parsed
+        } else {
+            lang = GameLanguage.detect()
+            UserDefaults.standard.set(lang.rawValue, forKey: "gameLanguage")
+        }
+        self.language = lang
+        self.engine = GridEngine(language: lang)
+        self.validator = WordValidator(language: lang)
         self.bestScore = UserDefaults.standard.integer(forKey: "bestScore")
         self.playerName = UserDefaults.standard.string(forKey: "playerName") ?? ""
         self.playerLink = UserDefaults.standard.string(forKey: "playerLink") ?? ""
@@ -56,6 +73,8 @@ class GameViewModel {
     deinit { timerTask?.cancel() }
 
     func setupGrid() {
+        engine = GridEngine(language: language)
+        validator = WordValidator(language: language)
         score = 0
         selectedPath = []
         currentWord = ""

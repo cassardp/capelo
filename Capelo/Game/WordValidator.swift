@@ -3,10 +3,11 @@ import Foundation
 struct WordValidator {
     private let words: Set<String>
 
-    init() {
-        guard let url = Bundle.main.url(forResource: "french_words", withExtension: "txt"),
+    init(language: GameLanguage = .english) {
+        let resource = language.dictionaryResource
+        guard let url = Bundle.main.url(forResource: resource, withExtension: "txt"),
               let content = try? String(contentsOf: url, encoding: .utf8) else {
-            fatalError("Missing french_words.txt")
+            fatalError("Missing \(resource).txt")
         }
         words = Set(
             content.components(separatedBy: .newlines)
