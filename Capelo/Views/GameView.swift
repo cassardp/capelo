@@ -210,6 +210,11 @@ struct GameView: View {
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(bgColor.ignoresSafeArea())
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in
+            if viewModel.hasStarted && !viewModel.isGameOver && !viewModel.isPaused {
+                viewModel.togglePause()
+            }
+        }
         .onChange(of: viewModel.isGameOver) {
             if viewModel.isGameOver {
                 viewModel.submitScore()

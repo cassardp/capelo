@@ -72,6 +72,11 @@ struct GridView: View {
             .clipped()
             .padding(.top, -tileSize)
             .contentShape(Rectangle())
+            .onTapGesture {
+                if viewModel.isPaused {
+                    viewModel.togglePause()
+                }
+            }
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { value in

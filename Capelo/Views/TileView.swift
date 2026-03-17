@@ -36,9 +36,10 @@ struct TileView: View {
         ZStack {
             RoundedRectangle(cornerRadius: 8)
                 .fill(tileBackground)
-            Text(isPaused ? "●" : String(tile.character))
-                .font(.system(size: isPaused ? size * 0.25 : size * 0.45, weight: .bold, design: .rounded))
+            Text(String(tile.character))
+                .font(.system(size: size * 0.45, weight: .bold, design: .rounded))
                 .foregroundStyle(tileText)
+                .opacity(isPaused ? 0.07 : 1)
         }
         .frame(width: size - 6, height: size - 6)
         .scaleEffect(isBombFlashed ? 1.15 : 1.0)
