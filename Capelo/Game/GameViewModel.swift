@@ -131,6 +131,12 @@ class GameViewModel {
         }
     }
 
+    func startGame() {
+        guard !hasStarted, !isGameOver else { return }
+        hasStarted = true
+        startTimer()
+    }
+
     func togglePause() { isPaused.toggle() }
 
     private func addTime(length: Int, hasBomb: Bool) {
@@ -146,7 +152,7 @@ class GameViewModel {
 
     func handleDrag(at location: CGPoint, tileSize: CGFloat) {
         guard !isAnimating, !isGameOver, !isPaused else { return }
-        if !hasStarted { hasStarted = true; startTimer() }
+        if !hasStarted { startGame() }
 
         // Require finger to be within 40% radius of tile center
         let centerThreshold = tileSize * 0.4

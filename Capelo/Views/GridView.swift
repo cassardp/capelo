@@ -71,6 +71,7 @@ struct GridView: View {
             .padding(.top, tileSize)
             .clipped()
             .padding(.top, -tileSize)
+            .animation(.easeOut(duration: 0.3), value: viewModel.isPaused)
             .contentShape(Rectangle())
             .onTapGesture {
                 if viewModel.isPaused {

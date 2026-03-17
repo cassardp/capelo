@@ -13,6 +13,7 @@ struct GameView: View {
     @State private var showLeaderboard = false
     @State private var leaderboardStartTab = 0
     @State private var showRestartConfirm = false
+    @State private var showWordList = false
     @Environment(\.colorScheme) private var colorScheme
 
     private var bgColor: Color { Palette.background(for: colorScheme) }
@@ -38,6 +39,11 @@ struct GameView: View {
                     .animation(.easeOut(duration: 0.3), value: viewModel.isNewBest)
                 if viewModel.isGameOver {
                     Text(Strings.get("gameOver", language: viewModel.language))
+                        .font(.system(size: 44, weight: .heavy))
+                        .foregroundStyle(textColor)
+                        .transition(.blurReplace)
+                } else if viewModel.isPaused {
+                    Text(Strings.get("paused", language: viewModel.language))
                         .font(.system(size: 44, weight: .heavy))
                         .foregroundStyle(textColor)
                         .transition(.blurReplace)
@@ -135,13 +141,7 @@ struct GameView: View {
                 }
                 .animation(.easeOut(duration: 0.3), value: isUrgent)
                 .overlay(alignment: .top) {
-                    if viewModel.isPaused {
-                        Text(Strings.get("paused", language: viewModel.language))
-                            .font(.caption.smallCaps())
-                            .foregroundStyle(textColor.opacity(0.5))
-                            .offset(y: -28)
-                            .transition(.opacity)
-                    } else if showPauseHint {
+                    if showPauseHint && !viewModel.isPaused {
                         Text(Strings.get("tapToPause", language: viewModel.language))
                             .font(.caption.smallCaps())
                             .foregroundStyle(textColor.opacity(0.5))
@@ -149,8 +149,9 @@ struct GameView: View {
                             .transition(.opacity)
                     }
                 }
-                .animation(.easeOut(duration: 0.5), value: viewModel.isPaused)
                 .animation(.easeOut(duration: 0.5), value: showPauseHint)
+                .opacity(viewModel.isPaused ? 0.3 : 1)
+                .animation(.easeOut(duration: 0.3), value: viewModel.isPaused)
                 .padding(.vertical, 12)
                 .contentShape(Rectangle())
                 .onTapGesture {
@@ -174,38 +175,92 @@ struct GameView: View {
 
             Spacer()
 
-            // Bottom button
-            if !viewModel.hasStarted || viewModel.isPaused {
+            // Bottom toolbar
+            ZStack {
+                // Center: Main action (always truly centered)
                 Button {
-                    leaderboardStartTab = viewModel.playerName.isEmpty ? 1 : 0
-                    showLeaderboard = true
+                    if viewModel.isGameOver {
+                        withAnimation { viewModel.setupGrid() }
+                    } else if viewModel.hasStarted {
+                        viewModel.togglePause()
+                    } else {
+                        viewModel.startGame()
+                    }
                 } label: {
-                    Image(systemName: "star")
-                        .font(.title)
+                    Image(systemName: mainActionIcon)
+                        .font(.system(size: 32))
                         .foregroundStyle(textColor)
-                        .frame(width: 44, height: 44)
+                        .frame(width: 60, height: 60)
+                        .contentTransition(.symbolEffect(.replace))
                 }
-                .padding(.bottom, 32)
-                .transition(.opacity)
-            } else if viewModel.hasStarted && !viewModel.isGameOver {
-                Button { showRestartConfirm = true } label: {
-                    Image(systemName: "arrow.counterclockwise")
-                        .font(.title)
-                        .foregroundStyle(textColor)
-                        .frame(width: 44, height: 44)
+
+                // Side icons
+                HStack {
+                    // Left: Word list (game over) or Language picker
+                    if viewModel.isGameOver && !viewModel.foundWords.isEmpty {
+                        Button { showWordList = true } label: {
+                            Image(systemName: "book")
+                                .font(.title2)
+                                .foregroundStyle(textColor)
+                                .frame(width: 44, height: 44)
+                        }
+                        .transition(.opacity)
+                    } else {
+                        Menu {
+                            ForEach(GameLanguage.allCases, id: \.self) { lang in
+                                Button {
+                                    viewModel.language = lang
+                                } label: {
+                                    Label(lang.displayName, systemImage: lang == viewModel.language ? "checkmark" : "globe")
+                                }
+                            }
+                        } label: {
+                            Text(viewModel.language.shortCode)
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(textColor)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(textColor.opacity(0.3), lineWidth: 1)
+                                )
+                                .transaction { $0.disablesAnimations = true }
+                        }
+                        .buttonStyle(.borderless)
+                        .menuStyle(.borderlessButton)
+                        .transition(.opacity)
+                    }
+
+                    Spacer()
+
+                    // Right: contextual single icon
+                    if viewModel.hasStarted && !viewModel.isGameOver && !viewModel.isPaused {
+                        Button { showRestartConfirm = true } label: {
+                            Image(systemName: "arrow.counterclockwise")
+                                .font(.title2)
+                                .foregroundStyle(textColor)
+                                .frame(width: 44, height: 44)
+                        }
+                        .transition(.opacity)
+                    } else {
+                        Button {
+                            leaderboardStartTab = viewModel.playerName.isEmpty ? 1 : 0
+                            showLeaderboard = true
+                        } label: {
+                            Image(systemName: "star")
+                                .font(.title2)
+                                .foregroundStyle(textColor)
+                                .frame(width: 44, height: 44)
+                        }
+                        .transition(.opacity)
+                    }
                 }
-                .padding(.bottom, 32)
-                .transition(.opacity)
-            } else {
-                Button { withAnimation { viewModel.setupGrid() } } label: {
-                    Image(systemName: "arrow.counterclockwise")
-                        .font(.title)
-                        .foregroundStyle(textColor)
-                        .frame(width: 44, height: 44)
-                }
-                .padding(.bottom, 32)
-                .transition(.opacity)
             }
+            .padding(.horizontal, 8)
+            .padding(.bottom, 24)
+            .animation(.easeOut(duration: 0.3), value: viewModel.isGameOver)
+            .animation(.easeOut(duration: 0.3), value: viewModel.hasStarted)
+            .animation(.easeOut(duration: 0.3), value: viewModel.isPaused)
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -219,10 +274,12 @@ struct GameView: View {
         .onChange(of: viewModel.isGameOver) {
             if viewModel.isGameOver {
                 viewModel.submitScore()
-                leaderboardStartTab = viewModel.playerName.isEmpty ? 1 : 0
-                Task {
-                    try? await Task.sleep(for: .seconds(2.5))
-                    showLeaderboard = true
+                if viewModel.isNewBest {
+                    leaderboardStartTab = viewModel.playerName.isEmpty ? 1 : 0
+                    Task {
+                        try? await Task.sleep(for: .seconds(2.5))
+                        showLeaderboard = true
+                    }
                 }
             }
         }
@@ -284,6 +341,20 @@ struct GameView: View {
                     UserDefaults.standard.set(viewModel.playerLink, forKey: "playerLink")
                 }
             )
+        }
+        .sheet(isPresented: $showWordList) {
+            WordListView(words: viewModel.foundWords)
+                .environment(\.gameLanguage, viewModel.language)
+        }
+    }
+
+    private var mainActionIcon: String {
+        if viewModel.isGameOver {
+            return "arrow.counterclockwise"
+        } else if viewModel.hasStarted && !viewModel.isPaused {
+            return "pause.fill"
+        } else {
+            return "play.fill"
         }
     }
 

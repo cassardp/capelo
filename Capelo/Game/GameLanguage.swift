@@ -12,6 +12,24 @@ enum GameLanguage: String, CaseIterable, Codable {
         }
     }
 
+    var shortCode: String {
+        switch self {
+        case .english: "EN"
+        case .french: "FR"
+        case .spanish: "ES"
+        case .portuguese: "PT"
+        }
+    }
+
+    var wikiCode: String {
+        switch self {
+        case .english: "en"
+        case .french: "fr"
+        case .spanish: "es"
+        case .portuguese: "pt"
+        }
+    }
+
     var flag: String {
         switch self {
         case .english: "🇬🇧"

@@ -226,29 +226,6 @@ struct LeaderboardView: View {
                 }
                 .padding(.horizontal, 20)
 
-                HStack(spacing: 12) {
-                    Circle()
-                        .fill(Palette.olive)
-                        .frame(width: 36, height: 36)
-                        .overlay(
-                            Image(systemName: "globe")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundStyle(Palette.cream)
-                        )
-                    Picker(Strings.get("language", language: language), selection: $language) {
-                        ForEach(GameLanguage.allCases, id: \.self) { lang in
-                            Text(lang.displayName).tag(lang)
-                        }
-                    }
-                    .tint(textColor)
-                    Spacer()
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 12)
-                .background(textColor.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
-                .padding(.horizontal, 20)
-                .padding(.top, 24)
-
                 if profileHasChanges {
                     Button {
                         guard !playerName.isEmpty else { return }
