@@ -14,31 +14,12 @@ struct GridEngine {
         self.letterGenerator = LetterGenerator(language: language)
     }
 
-    private func letterCounts() -> [Character: Int] {
-        var counts: [Character: Int] = [:]
-        for row in grid {
-            for tile in row where !tile.isMatched {
-                counts[tile.character, default: 0] += 1
-            }
-        }
-        return counts
-    }
-
     mutating func buildGrid() {
         grid = []
-        var counts: [Character: Int] = [:]
-        var vowels = 0, total = 0
         for row in 0..<rows {
             var rowTiles: [Tile] = []
             for col in 0..<cols {
-                let char = letterGenerator.random(
-                    currentVowelCount: vowels,
-                    currentTotal: total,
-                    letterCounts: counts
-                )
-                counts[char, default: 0] += 1
-                total += 1
-                if letterGenerator.vowels.contains(char) { vowels += 1 }
+                let char = letterGenerator.random()
                 rowTiles.append(Tile(
                     id: UUID(),
                     character: char,
@@ -48,7 +29,7 @@ struct GridEngine {
             }
             grid.append(rowTiles)
         }
-        let bombCount = Int.random(in: 1...2)
+        let bombCount = Int.random(in: 2...3)
         var placed = 0
         while placed < bombCount {
             let r = Int.random(in: 0..<rows)
@@ -116,21 +97,7 @@ struct GridEngine {
         grid[r][c].isBomb = true
     }
 
-    private func vowelCount() -> (vowels: Int, total: Int) {
-        var v = 0, t = 0
-        for row in grid {
-            for tile in row where !tile.isMatched {
-                t += 1
-                if letterGenerator.vowels.contains(tile.character) { v += 1 }
-            }
-        }
-        return (v, t)
-    }
-
     mutating func applyGravityAndSpawn() {
-        var stats = vowelCount()
-        var counts = letterCounts()
-
         for col in 0..<cols {
             var surviving: [Tile] = []
             for row in (0..<rows).reversed() {
@@ -146,14 +113,7 @@ struct GridEngine {
             }
             let emptyCount = rows - surviving.count
             for i in 0..<emptyCount {
-                let char = letterGenerator.random(
-                    currentVowelCount: stats.vowels,
-                    currentTotal: stats.total,
-                    letterCounts: counts
-                )
-                counts[char, default: 0] += 1
-                stats.total += 1
-                if letterGenerator.vowels.contains(char) { stats.vowels += 1 }
+                let char = letterGenerator.random()
                 grid[i][col] = Tile(
                     id: UUID(),
                     character: char,
