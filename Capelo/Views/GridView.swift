@@ -73,15 +73,14 @@ struct GridView: View {
             .padding(.top, -tileSize)
             .animation(.easeOut(duration: 0.3), value: viewModel.isPaused)
             .contentShape(Rectangle())
-            .onTapGesture {
-                if viewModel.isPaused {
-                    viewModel.togglePause()
-                }
-            }
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { value in
-                        viewModel.handleDrag(at: value.location, tileSize: tileSize)
+                        if viewModel.isPaused {
+                            viewModel.togglePause()
+                        } else {
+                            viewModel.handleDrag(at: value.location, tileSize: tileSize)
+                        }
                     }
                     .onEnded { _ in
                         viewModel.handleDragEnd()

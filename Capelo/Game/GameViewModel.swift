@@ -67,8 +67,6 @@ class GameViewModel {
         self.playerName = UserDefaults.standard.string(forKey: "playerName") ?? ""
         self.playerLink = UserDefaults.standard.string(forKey: "playerLink") ?? ""
         setupGrid()
-        lightHaptic.prepare()
-        mediumHaptic.prepare()
     }
 
     deinit { timerTask?.cancel() }
@@ -135,6 +133,9 @@ class GameViewModel {
     func startGame() {
         guard !hasStarted, !isGameOver else { return }
         hasStarted = true
+        lightHaptic.prepare()
+        mediumHaptic.prepare()
+        heavyHaptic.prepare()
         startTimer()
     }
 
@@ -179,32 +180,69 @@ class GameViewModel {
     }
 
     private func trySelectTile(at location: CGPoint, tileSize: CGFloat) {
-        // Find the closest tile center within threshold
-        let col = Int(location.x / tileSize)
-        let row = Int(location.y / tileSize)
-        guard row >= 0, row < engine.rows, col >= 0, col < engine.cols else { return }
-
-        // Check the 4 nearest tile centers (current cell + up to 3 neighbors near edges)
         let centerThreshold = tileSize * 0.45
+
+        // No path yet: pick the closest tile center
+        if selectedPath.isEmpty {
+            let col = Int(location.x / tileSize)
+            let row = Int(location.y / tileSize)
+            guard row >= 0, row < engine.rows, col >= 0, col < engine.cols else { return }
+
+            var bestDist = CGFloat.greatestFiniteMagnitude
+            var bestR = row, bestC = col
+            for dr in -1...1 {
+                for dc in -1...1 {
+                    let r = row + dr, c = col + dc
+                    guard r >= 0, r < engine.rows, c >= 0, c < engine.cols else { continue }
+                    let cx = CGFloat(c) * tileSize + tileSize / 2
+                    let cy = CGFloat(r) * tileSize + tileSize / 2
+                    let d = hypot(location.x - cx, location.y - cy)
+                    if d < bestDist { bestDist = d; bestR = r; bestC = c }
+                }
+            }
+            guard bestDist <= centerThreshold else { return }
+            addTileToPath(row: bestR, col: bestC, tileSize: tileSize)
+            return
+        }
+
+        // Path exists: only consider tiles adjacent to the last selected tile
+        // Bias toward the drag direction so diagonals aren't stolen by orthogonal neighbors
+        let last = selectedPath.last!
+        let lastCx = CGFloat(last.1) * tileSize + tileSize / 2
+        let lastCy = CGFloat(last.0) * tileSize + tileSize / 2
+        let dx = location.x - lastCx
+        let dy = location.y - lastCy
+
+        var bestScore = CGFloat.greatestFiniteMagnitude
         var bestDist = CGFloat.greatestFiniteMagnitude
-        var bestR = row, bestC = col
+        var bestR = -1, bestC = -1
 
         for dr in -1...1 {
             for dc in -1...1 {
-                let r = row + dr, c = col + dc
+                let r = last.0 + dr, c = last.1 + dc
                 guard r >= 0, r < engine.rows, c >= 0, c < engine.cols else { continue }
                 let cx = CGFloat(c) * tileSize + tileSize / 2
                 let cy = CGFloat(r) * tileSize + tileSize / 2
                 let d = hypot(location.x - cx, location.y - cy)
-                if d < bestDist {
-                    bestDist = d
-                    bestR = r
-                    bestC = c
+
+                // Direction alignment: dot product between drag vector and tile vector
+                let tileDir = CGPoint(x: CGFloat(dc), y: CGFloat(dr))
+                let dirLen = hypot(tileDir.x, tileDir.y)
+                let dragLen = hypot(dx, dy)
+                var alignment: CGFloat = 0
+                if dirLen > 0 && dragLen > tileSize * 0.3 {
+                    alignment = (dx * tileDir.x + dy * tileDir.y) / (dragLen * dirLen)
                 }
+
+                // Penalize tiles misaligned with drag direction (0 = no penalty, 1 = full penalty)
+                let penalty = max(0, 1 - alignment) * tileSize * 0.25
+                let score = d + penalty
+
+                if score < bestScore { bestScore = score; bestDist = d; bestR = r; bestC = c }
             }
         }
 
-        guard bestDist <= centerThreshold else { return }
+        guard bestR >= 0, bestDist <= centerThreshold else { return }
         addTileToPath(row: bestR, col: bestC, tileSize: tileSize)
     }
 
