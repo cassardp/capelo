@@ -63,15 +63,6 @@ enum GameLanguage: String, CaseIterable, Codable {
 
     var vowels: Set<Character> { ["A", "E", "I", "O", "U"] }
 
-    var targetVowelRatio: Double {
-        switch self {
-        case .french: 0.40
-        case .english: 0.42
-        case .spanish: 0.45
-        case .portuguese: 0.44
-        }
-    }
-
     static func detect() -> GameLanguage {
         guard let code = Locale.current.language.languageCode?.identifier else { return .english }
         switch code {

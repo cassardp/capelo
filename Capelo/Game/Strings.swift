@@ -136,6 +136,12 @@ enum Strings {
             .spanish: "Idioma",
             .portuguese: "Idioma",
         ],
+        "swipeToPlay": [
+            .english: "Swipe the word to play",
+            .french: "Glissez le mot pour jouer",
+            .spanish: "Desliza la palabra para jugar",
+            .portuguese: "Deslize a palavra para jogar",
+        ],
         "noDefinition": [
             .english: "No definition found",
             .french: "Aucune définition trouvée",

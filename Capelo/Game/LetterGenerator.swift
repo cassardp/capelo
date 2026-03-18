@@ -2,40 +2,49 @@ import Foundation
 
 struct LetterGenerator {
     let vowels: Set<Character>
-    let targetVowelRatio: Double
-    private let fullPool: [Character]
+    private let pool: [Character]
     private let vowelPool: [Character]
     private let consonantPool: [Character]
+    private let maxPerLetter: [Character: Int]
 
     init(language: GameLanguage = .english) {
         self.vowels = language.vowels
-        self.targetVowelRatio = language.targetVowelRatio
         let dist = language.distribution
-        self.fullPool = Self.buildPool(from: dist)
-        self.vowelPool = Self.buildPool(from: dist.filter { language.vowels.contains($0.0) })
-        self.consonantPool = Self.buildPool(from: dist.filter { !language.vowels.contains($0.0) })
-    }
-
-    private static func buildPool(from dist: [(Character, Int)]) -> [Character] {
-        var chars: [Character] = []
+        var all: [Character] = []
+        var vp: [Character] = []
+        var cp: [Character] = []
+        var maxes: [Character: Int] = [:]
         for (char, weight) in dist {
-            chars.append(contentsOf: Array(repeating: char, count: weight))
+            all.append(contentsOf: Array(repeating: char, count: weight))
+            if language.vowels.contains(char) {
+                vp.append(contentsOf: Array(repeating: char, count: weight))
+            } else {
+                cp.append(contentsOf: Array(repeating: char, count: weight))
+            }
+            maxes[char] = weight >= 6 ? 4 : (weight >= 3 ? 3 : 2)
         }
-        return chars
+        self.pool = all
+        self.vowelPool = vp
+        self.consonantPool = cp
+        self.maxPerLetter = maxes
     }
 
-    func random() -> Character {
-        fullPool.randomElement()!
-    }
-
-    func random(currentVowelCount: Int, currentTotal: Int) -> Character {
-        guard currentTotal > 0 else { return fullPool.randomElement()! }
-        let ratio = Double(currentVowelCount) / Double(currentTotal)
-        if ratio < targetVowelRatio - 0.08 {
-            return vowelPool.randomElement()!
-        } else if ratio > targetVowelRatio + 0.12 {
-            return consonantPool.randomElement()!
+    func random(currentVowelCount: Int, currentTotal: Int, letterCounts: [Character: Int] = [:]) -> Character {
+        let source: [Character]
+        if currentTotal > 0 {
+            let ratio = Double(currentVowelCount) / Double(currentTotal)
+            if ratio < 0.35 { source = vowelPool }
+            else if ratio > 0.50 { source = consonantPool }
+            else { source = pool }
+        } else {
+            source = pool
         }
-        return fullPool.randomElement()!
+
+        for _ in 0..<20 {
+            let char = source.randomElement()!
+            let count = letterCounts[char] ?? 0
+            if count < maxPerLetter[char, default: 2] { return char }
+        }
+        return source.randomElement()!
     }
 }
