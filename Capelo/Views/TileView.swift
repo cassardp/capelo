@@ -11,6 +11,7 @@ struct TileView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     @State private var shakeTrigger = false
+    @State private var wiggleTrigger = false
 
     private var tileBackground: Color {
         if isPaused { return colorScheme == .dark ? Palette.sand.opacity(0.12) : Palette.sand }
@@ -22,14 +23,19 @@ struct TileView: View {
             case .none: return Palette.taupe
             }
         }
-        if tile.isBomb { return colorScheme == .dark ? Palette.sand : Palette.espresso }
+        if tile.isBomb { return Palette.orange.opacity(0.15) }
         return colorScheme == .dark ? Palette.sand.opacity(0.12) : Palette.sand
+    }
+
+    private var tileBorder: Color? {
+        if !isPaused && !isSelected && !isBombFlashed && tile.isBomb { return Palette.orange.opacity(0.5) }
+        return nil
     }
 
     private var tileText: Color {
         if isBombFlashed { return colorScheme == .dark ? Palette.warmBlack : Palette.cream }
         if isSelected { return Palette.cream }
-        if tile.isBomb { return colorScheme == .dark ? Palette.warmBlack : Palette.cream }
+        if tile.isBomb { return Palette.orange }
         return colorScheme == .dark ? Palette.sand : Palette.espresso
     }
 
@@ -37,6 +43,10 @@ struct TileView: View {
         ZStack {
             RoundedRectangle(cornerRadius: 8)
                 .fill(tileBackground)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .strokeBorder(tileBorder ?? .clear, lineWidth: 2)
+                )
                 .animation(isPaused ? nil : .easeOut(duration: 0.20), value: tileBackground)
             if isPaused {
                 Text("")
@@ -51,6 +61,16 @@ struct TileView: View {
         .brightness(isBombFlashed ? 0.3 : 0)
         .animation(.easeOut(duration: 0.20), value: isSelected)
         .opacity(tile.isMatched ? 0 : 1)
+        .keyframeAnimator(initialValue: Double.zero, trigger: wiggleTrigger) { content, angle in
+            content.rotationEffect(.degrees(angle))
+        } keyframes: { _ in
+            CubicKeyframe(4, duration: 0.09)
+            CubicKeyframe(-4, duration: 0.09)
+            CubicKeyframe(3, duration: 0.09)
+            CubicKeyframe(-2, duration: 0.09)
+            CubicKeyframe(1, duration: 0.08)
+            CubicKeyframe(0, duration: 0.08)
+        }
         .keyframeAnimator(initialValue: CGFloat.zero, trigger: shakeTrigger) { content, value in
             content.offset(x: value)
         } keyframes: { _ in
@@ -73,6 +93,16 @@ struct TileView: View {
                     try? await Task.sleep(for: .milliseconds((tile.row + tile.col) % 5 * 30))
                     shakeTrigger.toggle()
                 }
+            }
+        }
+        .task(id: tile.isBomb) {
+            guard tile.isBomb else { return }
+            let offset = Int.random(in: 500...2000)
+            try? await Task.sleep(for: .milliseconds(offset))
+            while !Task.isCancelled && tile.isBomb && !tile.isMatched {
+                wiggleTrigger.toggle()
+                let delay = Int.random(in: 2500...4500)
+                try? await Task.sleep(for: .milliseconds(delay))
             }
         }
     }
