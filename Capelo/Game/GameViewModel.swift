@@ -49,6 +49,7 @@ class GameViewModel {
 
     private var timerStart: Date?
     private var timerBudget: Double = 45
+    private var lastDragLocation: CGPoint?
 
     init() {
         let lang: GameLanguage
@@ -154,8 +155,30 @@ class GameViewModel {
         guard !isAnimating, !isGameOver, !isPaused else { return }
         if !hasStarted { startGame() }
 
-        // Require finger to be within 40% radius of tile center
-        let centerThreshold = tileSize * 0.4
+        let prevLocation = lastDragLocation
+        lastDragLocation = location
+
+        // Interpolate between previous and current touch to catch fast swipes
+        if let prev = prevLocation, selectedPath.count > 0 {
+            let dist = hypot(location.x - prev.x, location.y - prev.y)
+            let step = tileSize * 0.3
+            if dist > step {
+                let steps = Int(dist / step)
+                for i in 1..<steps {
+                    let t = CGFloat(i) / CGFloat(steps)
+                    let interp = CGPoint(
+                        x: prev.x + (location.x - prev.x) * t,
+                        y: prev.y + (location.y - prev.y) * t
+                    )
+                    trySelectTile(at: interp, tileSize: tileSize)
+                }
+            }
+        }
+
+        trySelectTile(at: location, tileSize: tileSize)
+    }
+
+    private func trySelectTile(at location: CGPoint, tileSize: CGFloat) {
         let col = Int(location.x / tileSize)
         let row = Int(location.y / tileSize)
         guard row >= 0, row < engine.rows, col >= 0, col < engine.cols else { return }
@@ -164,8 +187,86 @@ class GameViewModel {
         let centerY = CGFloat(row) * tileSize + tileSize / 2
         let dx = location.x - centerX
         let dy = location.y - centerY
-        guard sqrt(dx * dx + dy * dy) <= centerThreshold else { return }
+        let distToCenter = hypot(dx, dy)
+        let centerThreshold = tileSize * 0.55
 
+        // When we have a path and the finger is near a cell edge, use direction-aware selection
+        if selectedPath.count > 0 {
+            if distToCenter > tileSize * 0.35 {
+                // Finger is away from center — use direction-weighted neighbor selection
+                tryDirectionalAdjacent(at: location, tileSize: tileSize)
+                return
+            }
+        }
+
+        guard distToCenter <= centerThreshold else { return }
+        addTileToPath(row: row, col: col, tileSize: tileSize)
+    }
+
+    private func dragDirection(at location: CGPoint) -> CGPoint? {
+        guard let prev = lastDragLocation else { return nil }
+        let dx = location.x - prev.x
+        let dy = location.y - prev.y
+        let len = hypot(dx, dy)
+        guard len > 1 else { return nil }
+        return CGPoint(x: dx / len, y: dy / len)
+    }
+
+    private func tryDirectionalAdjacent(at location: CGPoint, tileSize: CGFloat) {
+        guard let last = selectedPath.last else { return }
+        let dir = dragDirection(at: location)
+
+        let lastCX = CGFloat(last.1) * tileSize + tileSize / 2
+        let lastCY = CGFloat(last.0) * tileSize + tileSize / 2
+
+        var bestScore = -CGFloat.greatestFiniteMagnitude
+        var bestTile: (Int, Int)?
+
+        for dr in -1...1 {
+            for dc in -1...1 {
+                if dr == 0 && dc == 0 { continue }
+                let r = last.0 + dr, c = last.1 + dc
+                guard r >= 0, r < engine.rows, c >= 0, c < engine.cols else { continue }
+                if selectedPath.contains(where: { $0.0 == r && $0.1 == c }) { continue }
+
+                let cx = CGFloat(c) * tileSize + tileSize / 2
+                let cy = CGFloat(r) * tileSize + tileSize / 2
+                let distFromFinger = hypot(location.x - cx, location.y - cy)
+
+                // Must be within reach
+                guard distFromFinger <= tileSize * 0.85 else { continue }
+
+                // Proximity score (closer = better, normalized)
+                let proxScore = 1.0 - (distFromFinger / (tileSize * 0.85))
+
+                // Direction alignment score
+                var dirScore: CGFloat = 0
+                if let dir = dir {
+                    // Direction from last tile center to candidate center
+                    let toDx = cx - lastCX
+                    let toDy = cy - lastCY
+                    let toLen = hypot(toDx, toDy)
+                    if toLen > 0 {
+                        // Dot product = cos(angle) between drag direction and tile direction
+                        dirScore = (dir.x * toDx / toLen + dir.y * toDy / toLen)
+                    }
+                }
+
+                // Combined score: direction is heavily weighted when available
+                let score = proxScore * 0.3 + dirScore * 0.7
+                if score > bestScore {
+                    bestScore = score
+                    bestTile = (r, c)
+                }
+            }
+        }
+
+        if let tile = bestTile, bestScore > 0.1 {
+            addTileToPath(row: tile.0, col: tile.1, tileSize: tileSize)
+        }
+    }
+
+    private func addTileToPath(row: Int, col: Int, tileSize: CGFloat) {
         if selectedPath.isEmpty {
             selectedPath.append((row, col))
             currentWord = String(engine.grid[row][col].character)
@@ -174,30 +275,45 @@ class GameViewModel {
             return
         }
 
-        let current = (row, col)
-
         // Backtrack: if user goes back to any tile already in the path, truncate
         if let index = selectedPath.firstIndex(where: { $0.0 == row && $0.1 == col }) {
-            selectedPath = Array(selectedPath.prefix(index + 1))
-            currentWord = String(selectedPath.map { engine.grid[$0.0][$0.1].character })
-            updateLiveValidation()
-            lightHaptic.impactOccurred(intensity: 0.3)
+            if index < selectedPath.count - 1 {
+                selectedPath = Array(selectedPath.prefix(index + 1))
+                currentWord = String(selectedPath.map { engine.grid[$0.0][$0.1].character })
+                updateLiveValidation()
+                lightHaptic.impactOccurred(intensity: 0.3)
+            }
             return
         }
 
-        // Must be adjacent to last tile (8 directions)
         let last = selectedPath.last!
         let dr = abs(last.0 - row)
         let dc = abs(last.1 - col)
-        guard dr <= 1 && dc <= 1 && (dr + dc) > 0 else { return }
 
-        selectedPath.append(current)
+        // Auto-bridge: if 2 tiles away in a straight line, insert the middle tile
+        if (dr == 2 && dc == 0) || (dr == 0 && dc == 2) || (dr == 2 && dc == 2) {
+            let midR = (last.0 + row) / 2
+            let midC = (last.1 + col) / 2
+            if !selectedPath.contains(where: { $0.0 == midR && $0.1 == midC }) {
+                selectedPath.append((midR, midC))
+                lightHaptic.impactOccurred(intensity: 0.5)
+            }
+        }
+
+        // Must be adjacent to last tile (8 directions) — recheck after possible bridge
+        let actualLast = selectedPath.last!
+        let finalDr = abs(actualLast.0 - row)
+        let finalDc = abs(actualLast.1 - col)
+        guard finalDr <= 1 && finalDc <= 1 && (finalDr + finalDc) > 0 else { return }
+
+        selectedPath.append((row, col))
         currentWord = String(selectedPath.map { engine.grid[$0.0][$0.1].character })
         updateLiveValidation()
         lightHaptic.impactOccurred(intensity: 0.5)
     }
 
     func handleDragEnd() {
+        lastDragLocation = nil
         guard !isAnimating, !isGameOver else { return }
         guard selectedPath.count >= 3 else {
             Task { await animatedDeselect() }

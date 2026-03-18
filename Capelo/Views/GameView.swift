@@ -49,7 +49,10 @@ struct GameView: View {
                         .transition(.blurReplace)
                 } else if !viewModel.currentWord.isEmpty {
                     Text(viewModel.currentWord)
-                        .font(.system(size: 44, weight: .heavy))
+                        .font(.system(size: min(44, max(24, 44 - CGFloat(max(0, viewModel.currentWord.count - 9)) * 2)), weight: .heavy))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                        .frame(height: 52)
                         .foregroundStyle(wordColor)
                         .keyframeAnimator(initialValue: CGFloat(1.0), trigger: viewModel.currentWord.count) { content, scale in
                             content.scaleEffect(scale)
