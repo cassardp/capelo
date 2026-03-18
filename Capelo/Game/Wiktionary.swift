@@ -1,33 +1,11 @@
 import Foundation
 
 enum Wiktionary {
-    private static let session: URLSession = {
-        let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 10
-        config.timeoutIntervalForResource = 15
-        config.waitsForConnectivity = true
-        return URLSession(configuration: config)
-    }()
-
-    private static func fetch(url: URL) async throws -> Data {
-        var request = URLRequest(url: url)
-        request.setValue("Capelo/1.0 (iOS word game)", forHTTPHeaderField: "User-Agent")
-        let (data, _) = try await session.data(for: request)
-        return data
-    }
-
-    static func fetchDefinition(word: String, language: GameLanguage) async -> String? {
+    static func fetchDefinition(word: String, language: GameLanguage) async -> [String]? {
         let lower = word.lowercased()
 
-        for attempt in 0..<2 {
-            if attempt > 0 {
-                try? await Task.sleep(for: .milliseconds(300))
-            }
-            if Task.isCancelled { return nil }
-
-            if let result = await fetchPage(word: lower, language: language) {
-                return result
-            }
+        if let result = await fetchPage(word: lower, language: language) {
+            return result
         }
 
         guard let variants = await searchVariants(word: lower, language: language) else { return nil }
@@ -45,7 +23,7 @@ enum Wiktionary {
 
         guard let url = URL(string: urlString) else { return nil }
 
-        guard let data = try? await fetch(url: url),
+        guard let (data, _) = try? await URLSession.shared.data(from: url),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let query = json["query"] as? [String: Any],
               let results = query["search"] as? [[String: Any]] else { return nil }
@@ -54,30 +32,21 @@ enum Wiktionary {
             .filter { $0.lowercased() != word }
     }
 
-    private static func fetchPage(word: String, language: GameLanguage) async -> String? {
+    private static func fetchPage(word: String, language: GameLanguage) async -> [String]? {
         let encoded = word.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? word
         let urlString = "https://fr.wiktionary.org/w/api.php?action=parse&page=\(encoded)&prop=wikitext&format=json&formatversion=2"
 
         guard let url = URL(string: urlString) else { return nil }
 
-        do {
-            let data = try await fetch(url: url)
-            guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
+        guard let (data, _) = try? await URLSession.shared.data(from: url),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let parse = json["parse"] as? [String: Any],
+              let wikitext = parse["wikitext"] as? String else { return nil }
 
-            if json["error"] != nil { return nil }
-
-            guard let parse = json["parse"] as? [String: Any],
-                  let wikitext = parse["wikitext"] as? String else { return nil }
-
-            return extractDefinitions(from: wikitext, language: language)
-        } catch is CancellationError {
-            return nil
-        } catch {
-            return nil
-        }
+        return extractDefinitions(from: wikitext, language: language)
     }
 
-    private static func extractDefinitions(from wikitext: String, language: GameLanguage) -> String? {
+    private static func extractDefinitions(from wikitext: String, language: GameLanguage) -> [String]? {
         let lines = wikitext.components(separatedBy: "\n")
         var inTargetLang = false
         var definitions: [String] = []
@@ -107,9 +76,7 @@ enum Wiktionary {
         }
 
         guard !definitions.isEmpty else { return nil }
-        return definitions.enumerated()
-            .map { "\($0.offset + 1). \($0.element)" }
-            .joined(separator: "\n\n")
+        return definitions
     }
 
     private static func cleanWikiMarkup(_ text: String) -> String {

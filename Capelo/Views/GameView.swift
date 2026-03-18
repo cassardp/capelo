@@ -191,14 +191,21 @@ struct GameView: View {
                         .font(.system(size: 32))
                         .foregroundStyle(textColor)
                         .frame(width: 60, height: 60)
-                        .contentTransition(.symbolEffect(.replace))
+                        .contentTransition(.symbolEffect(.replace.magic(fallback: .replace)))
                 }
 
                 // Side icons
                 HStack {
-                    // Left: Word list (game over) or Language picker
-                    if viewModel.isGameOver && !viewModel.foundWords.isEmpty {
-                        Button { showWordList = true } label: {
+                    // Left: Word list (during/after game) or Language picker (before game)
+                    if viewModel.hasStarted || viewModel.isGameOver {
+                        Button {
+                            showWordList = true
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                if viewModel.hasStarted && !viewModel.isGameOver && !viewModel.isPaused {
+                                    viewModel.togglePause()
+                                }
+                            }
+                        } label: {
                             Image(systemName: "book")
                                 .font(.title2)
                                 .foregroundStyle(textColor)

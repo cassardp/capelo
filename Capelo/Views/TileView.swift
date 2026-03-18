@@ -13,6 +13,7 @@ struct TileView: View {
     @State private var shakeTrigger = false
 
     private var tileBackground: Color {
+        if isPaused { return colorScheme == .dark ? Palette.sand.opacity(0.12) : Palette.sand }
         if isBombFlashed { return colorScheme == .dark ? Palette.sand : Palette.espresso }
         if isSelected {
             switch wordValid {
@@ -36,10 +37,9 @@ struct TileView: View {
         ZStack {
             RoundedRectangle(cornerRadius: 8)
                 .fill(tileBackground)
+                .animation(isPaused ? nil : .easeOut(duration: 0.20), value: tileBackground)
             if isPaused {
-                Text("●")
-                    .font(.system(size: size * 0.25, weight: .bold, design: .rounded))
-                    .foregroundStyle(tileText)
+                Text("")
             } else {
                 Text(String(tile.character))
                     .font(.system(size: size * 0.45, weight: .bold, design: .rounded))

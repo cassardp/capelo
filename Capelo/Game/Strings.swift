@@ -130,12 +130,6 @@ enum Strings {
             .spanish: "palabras",
             .portuguese: "palavras",
         ],
-        "tapDefinition": [
-            .english: "Tap a word to see its definition",
-            .french: "Touchez un mot pour voir sa définition",
-            .spanish: "Toca una palabra para ver su definición",
-            .portuguese: "Toque numa palavra para ver a definição",
-        ],
         "language": [
             .english: "Language",
             .french: "Langue",
