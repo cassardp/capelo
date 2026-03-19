@@ -136,6 +136,12 @@ enum Strings {
             .spanish: "Swipe",
             .portuguese: "Swipe",
         ],
+        "tapToDefine": [
+            .english: "Tap for definition",
+            .french: "Tap pour la définition",
+            .spanish: "Tap para la definición",
+            .portuguese: "Tap para a definição",
+        ],
         "noDefinition": [
             .english: "No definition found",
             .french: "Aucune définition trouvée",

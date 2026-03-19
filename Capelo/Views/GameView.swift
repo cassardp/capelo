@@ -63,7 +63,7 @@ struct GameView: View {
                 } else if !viewModel.bonusText.isEmpty {
                     Text(viewModel.bonusText)
                         .font(.system(size: 44, weight: .heavy))
-                        .foregroundStyle(Palette.orange)
+                        .foregroundStyle(Palette.orangeRed)
                         .keyframeAnimator(
                             initialValue: BonusAnimValues(),
                             trigger: viewModel.bonusTrigger

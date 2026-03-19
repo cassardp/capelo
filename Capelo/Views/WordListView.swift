@@ -1,5 +1,4 @@
 import SwiftUI
-import UIKit
 
 struct WordListView: View {
     let words: [String]
@@ -30,27 +29,35 @@ struct WordListView: View {
                 }
                 .frame(maxWidth: .infinity)
             } else {
-                ScrollView {
-                    VStack(spacing: 0) {
+                VStack(spacing: 0) {
+                    VStack(spacing: 6) {
                         Text("\(uniqueWords.count) \(Strings.get(uniqueWords.count == 1 ? "word" : "words", language: language))")
                             .font(.system(size: 32, weight: .heavy))
                             .foregroundStyle(textColor)
-                            .padding(.top, 32)
-                            .padding(.bottom, 20)
-                            .offset(y: showList ? 0 : 12)
-                            .opacity(showList ? 1 : 0)
-                            .animation(.easeOut(duration: 0.4).delay(0.05), value: showList)
 
-                        ForEach(Array(uniqueWords.enumerated()), id: \.offset) { offset, word in
-                            wordRow(rank: offset + 1, word: word)
-                                .offset(y: showList ? 0 : 12)
-                                .opacity(showList ? 1 : 0)
-                                .animation(.easeOut(duration: 0.4).delay(0.1 + Double(offset) * 0.05), value: showList)
-                        }
+                        Text(Strings.get("tapToDefine", language: language))
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(textColor.opacity(0.35))
                     }
-                    .padding(.bottom, 32)
+                    .padding(.top, 32)
+                    .padding(.bottom, 20)
+                    .offset(y: showList ? 0 : 12)
+                    .opacity(showList ? 1 : 0)
+                    .animation(.easeOut(duration: 0.4).delay(0.05), value: showList)
+
+                    ScrollView {
+                        VStack(spacing: 0) {
+                            ForEach(Array(uniqueWords.enumerated()), id: \.offset) { offset, word in
+                                wordRow(rank: offset + 1, word: word)
+                                    .offset(y: showList ? 0 : 12)
+                                    .opacity(showList ? 1 : 0)
+                                    .animation(.easeOut(duration: 0.4).delay(0.1 + Double(offset) * 0.05), value: showList)
+                            }
+                        }
+                        .padding(.bottom, 32)
+                    }
+                    .scrollIndicators(.hidden)
                 }
-                .scrollIndicators(.hidden)
             }
         }
         .background(bgColor.ignoresSafeArea())
@@ -107,7 +114,7 @@ struct WordListView: View {
 
                 Spacer()
 
-                Image(systemName: "questionmark.circle")
+                Image(systemName: "book")
                     .font(.system(size: 22, weight: .medium))
                     .foregroundStyle(textColor.opacity(0.4))
             }

@@ -1,5 +1,11 @@
 import SwiftUI
 
+private struct ShakeOffset: Animatable {
+    var x: CGFloat = 0
+    var y: CGFloat = 0
+    static let zero = ShakeOffset()
+}
+
 struct TileView: View {
     let tile: Tile
     let isSelected: Bool
@@ -15,7 +21,7 @@ struct TileView: View {
 
     private var tileBackground: Color {
         if isPaused { return colorScheme == .dark ? Palette.sand.opacity(0.12) : Palette.sand }
-        if isBombFlashed { return colorScheme == .dark ? Palette.sand : Palette.espresso }
+        if isBombFlashed { return Palette.orangeRed }
         if isSelected {
             switch wordValid {
             case .some(true): return Palette.olive
@@ -23,19 +29,18 @@ struct TileView: View {
             case .none: return Palette.taupe
             }
         }
-        if tile.isBomb { return Palette.orange.opacity(0.15) }
+        if tile.isBomb { return Palette.orangeRed.opacity(0.15) }
         return colorScheme == .dark ? Palette.sand.opacity(0.12) : Palette.sand
     }
 
     private var tileBorder: Color? {
-        if !isPaused && !isSelected && !isBombFlashed && tile.isBomb { return Palette.orange.opacity(0.5) }
         return nil
     }
 
     private var tileText: Color {
         if isBombFlashed { return colorScheme == .dark ? Palette.warmBlack : Palette.cream }
         if isSelected { return Palette.cream }
-        if tile.isBomb { return Palette.orange }
+        if tile.isBomb { return Palette.orangeRed }
         return colorScheme == .dark ? Palette.sand : Palette.espresso
     }
 
@@ -71,21 +76,33 @@ struct TileView: View {
             CubicKeyframe(1, duration: 0.08)
             CubicKeyframe(0, duration: 0.08)
         }
-        .keyframeAnimator(initialValue: CGFloat.zero, trigger: shakeTrigger) { content, value in
-            content.offset(x: value)
+        .keyframeAnimator(initialValue: ShakeOffset.zero, trigger: shakeTrigger) { content, value in
+            content.offset(x: value.x, y: value.y)
         } keyframes: { _ in
-            let d: CGFloat = (tile.row + tile.col) % 2 == 0 ? 1 : -1
-            CubicKeyframe(4 * d, duration: 0.15)
-            CubicKeyframe(-3.5 * d, duration: 0.15)
-            CubicKeyframe(3.5 * d, duration: 0.18)
-            CubicKeyframe(-3 * d, duration: 0.18)
-            CubicKeyframe(2.5 * d, duration: 0.2)
-            CubicKeyframe(-2 * d, duration: 0.2)
-            CubicKeyframe(1.5 * d, duration: 0.22)
-            CubicKeyframe(-1 * d, duration: 0.22)
-            CubicKeyframe(0.5 * d, duration: 0.25)
-            CubicKeyframe(-0.2 * d, duration: 0.25)
-            CubicKeyframe(0, duration: 0.3)
+            let dx: CGFloat = (tile.row + tile.col) % 2 == 0 ? 1 : -1
+            let dy: CGFloat = (tile.row + tile.col) % 3 == 0 ? 1 : -1
+            KeyframeTrack(\.x) {
+                CubicKeyframe(4 * dx, duration: 0.15)
+                CubicKeyframe(-3.5 * dx, duration: 0.15)
+                CubicKeyframe(3.5 * dx, duration: 0.18)
+                CubicKeyframe(-3 * dx, duration: 0.18)
+                CubicKeyframe(2.5 * dx, duration: 0.2)
+                CubicKeyframe(-2 * dx, duration: 0.2)
+                CubicKeyframe(1.5 * dx, duration: 0.22)
+                CubicKeyframe(-1 * dx, duration: 0.22)
+                CubicKeyframe(0.5 * dx, duration: 0.25)
+                CubicKeyframe(0, duration: 0.25)
+            }
+            KeyframeTrack(\.y) {
+                CubicKeyframe(3 * dy, duration: 0.13)
+                CubicKeyframe(-2.5 * dy, duration: 0.16)
+                CubicKeyframe(2.5 * dy, duration: 0.16)
+                CubicKeyframe(-2 * dy, duration: 0.19)
+                CubicKeyframe(1.5 * dy, duration: 0.21)
+                CubicKeyframe(-1 * dy, duration: 0.21)
+                CubicKeyframe(0.5 * dy, duration: 0.24)
+                CubicKeyframe(0, duration: 0.3)
+            }
         }
         .onChange(of: isGameOver) {
             if isGameOver {

@@ -163,7 +163,6 @@ struct SplashView: View {
 
             if selectedIndices.count == word.count {
                 completed = true
-                heavyHaptic()
                 completeSplash()
             }
         }

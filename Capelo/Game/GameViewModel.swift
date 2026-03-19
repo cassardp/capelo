@@ -182,14 +182,14 @@ class GameViewModel {
     private func trySelectTile(at location: CGPoint, tileSize: CGFloat) {
         let centerThreshold = tileSize * 0.45
 
-        // No path yet: pick the tile under the touch
+        // No path yet: pick the tile under the touch (larger threshold for first tap)
         if selectedPath.isEmpty {
             let col = Int(location.x / tileSize)
             let row = Int(location.y / tileSize)
             guard row >= 0, row < engine.rows, col >= 0, col < engine.cols else { return }
             let cx = CGFloat(col) * tileSize + tileSize / 2
             let cy = CGFloat(row) * tileSize + tileSize / 2
-            guard hypot(location.x - cx, location.y - cy) <= centerThreshold else { return }
+            guard hypot(location.x - cx, location.y - cy) <= tileSize * 0.55 else { return }
             addTileToPath(row: row, col: col, tileSize: tileSize)
             return
         }
@@ -232,7 +232,9 @@ class GameViewModel {
             }
         }
 
-        guard bestR >= 0, bestDist <= centerThreshold else { return }
+        let isDiagonal = abs(bestR - last.0) == 1 && abs(bestC - last.1) == 1
+        let effectiveThreshold = isDiagonal ? centerThreshold * 1.3 : centerThreshold
+        guard bestR >= 0, bestDist <= effectiveThreshold else { return }
         addTileToPath(row: bestR, col: bestC, tileSize: tileSize)
     }
 
