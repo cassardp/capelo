@@ -39,6 +39,15 @@ enum GameLanguage: String, CaseIterable, Codable {
         }
     }
 
+    var wikiSectionPatterns: [String] {
+        switch self {
+        case .french: ["{{langue|fr}}", "Français", "{{-fr-}}"]
+        case .english: ["English", "{{langue|en}}", "{{-en-}}"]
+        case .spanish: ["Español", "{{lengua|es}}", "{{langue|es}}", "{{-es-}}"]
+        case .portuguese: ["Português", "{{língua|pt}}", "{{langue|pt}}", "{{-pt-}}"]
+        }
+    }
+
     var dictionaryResource: String {
         switch self {
         case .english: "english_words"

@@ -107,8 +107,8 @@ struct WordListView: View {
 
                 Spacer()
 
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 18, weight: .semibold))
+                Image(systemName: "questionmark.circle")
+                    .font(.system(size: 22, weight: .medium))
                     .foregroundStyle(textColor.opacity(0.4))
             }
             .padding(.horizontal, 14)

@@ -16,19 +16,33 @@ struct SplashView: View {
     @State private var selectedIndices: [Int] = []
     @State private var completed = false
     @State private var failed = false
+    @State private var exploding = false
     @State private var titleOffset: CGFloat = -40
     @State private var titleOpacity: Double = 0
     @State private var tilesOffset: CGFloat = 40
     @State private var tilesOpacity: Double = 0
     @State private var hintOpacity: Double = 0
-    @State private var dismissScale: CGFloat = 1.0
-    @State private var dismissOpacity: Double = 1.0
 
     private var bgColor: Color { Palette.background(for: colorScheme) }
     private var textColor: Color { Palette.text(for: colorScheme) }
 
     private var word: [Character] {
         Array(Strings.get("play", language: language).uppercased())
+    }
+
+    // Pre-computed random explosion vectors per tile
+    @State private var explosionOffsets: [(x: CGFloat, y: CGFloat, rotation: Double)] = []
+
+    private func generateExplosionOffsets() {
+        let count = word.count
+        let center = CGFloat(count - 1) / 2.0
+        explosionOffsets = (0..<count).map { i in
+            let spread = CGFloat(i) - center
+            let x = spread * CGFloat.random(in: 60...100) + CGFloat.random(in: -30...30)
+            let y = CGFloat.random(in: -300 ... -150)
+            let rotation = Double(spread) * Double.random(in: 15...35)
+            return (x, y, rotation)
+        }
     }
 
     var body: some View {
@@ -48,8 +62,6 @@ struct SplashView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(bgColor.ignoresSafeArea())
-        .scaleEffect(dismissScale)
-        .opacity(dismissOpacity)
         .onAppear {
             withAnimation(.spring(duration: 0.6, bounce: 0.4).delay(0.1)) {
                 titleOffset = 0
@@ -72,6 +84,7 @@ struct SplashView: View {
             let leadingPad = (geo.size.width - tilesWidth) / 2
             HStack(spacing: CGFloat(0)) {
                 ForEach(Array(word.enumerated()), id: \.offset) { index, char in
+                    let offsets = index < explosionOffsets.count ? explosionOffsets[index] : (x: CGFloat(0), y: CGFloat(0), rotation: 0.0)
                     SplashTileView(
                         character: char,
                         isSelected: selectedIndices.contains(index),
@@ -79,6 +92,10 @@ struct SplashView: View {
                         size: tileSize,
                         colorScheme: colorScheme
                     )
+                    .offset(x: exploding ? offsets.x : 0, y: exploding ? offsets.y : 0)
+                    .rotationEffect(.degrees(exploding ? offsets.rotation : 0))
+                    .scaleEffect(exploding ? 0.4 : 1.0)
+                    .opacity(exploding ? 0 : 1)
                 }
             }
             .position(x: geo.size.width / 2, y: geo.size.height / 2)
@@ -89,7 +106,6 @@ struct SplashView: View {
                 DragGesture(minimumDistance: 0)
                     .onChanged { value in
                         guard !completed, !failed else { return }
-                        // Adjust for centering: convert from GeometryReader coords to HStack coords
                         let adjustedX = value.location.x - leadingPad
                         let adjusted = CGPoint(x: adjustedX, y: value.location.y)
                         handleSplashDrag(at: adjusted, tileSize: tileSize, spacing: 0)
@@ -116,12 +132,9 @@ struct SplashView: View {
 
     private func handleSplashDrag(at location: CGPoint, tileSize: CGFloat, spacing: CGFloat) {
         let step = tileSize + spacing
-
-        // DragGesture location is relative to HStack top-left
         let rawIndex = Int(location.x / step)
         guard rawIndex >= 0, rawIndex < word.count else { return }
 
-        // Check distance to tile center
         let tileCenterX = CGFloat(rawIndex) * step + tileSize / 2
         let dist = abs(location.x - tileCenterX)
         guard dist <= tileSize * 0.6 else { return }
@@ -148,7 +161,6 @@ struct SplashView: View {
             selectedIndices.append(rawIndex)
             lightHaptic()
 
-            // Auto-complete when reaching last letter
             if selectedIndices.count == word.count {
                 completed = true
                 heavyHaptic()
@@ -170,12 +182,21 @@ struct SplashView: View {
     }
 
     private func completeSplash() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            withAnimation(.easeOut(duration: 0.45)) {
-                dismissScale = 0.85
-                dismissOpacity = 0
+        generateExplosionOffsets()
+
+        // Pause on green, then explode
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+            withAnimation(.easeOut(duration: 0.15)) {
+                hintOpacity = 0
             }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+            withAnimation(.spring(duration: 0.6, bounce: 0.2)) {
+                exploding = true
+            }
+            withAnimation(.easeOut(duration: 0.5).delay(0.2)) {
+                titleOpacity = 0
+                titleOffset = -20
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
                 onPlay()
             }
         }

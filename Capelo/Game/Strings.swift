@@ -16,12 +16,6 @@ enum Strings {
             .spanish: "Pausa",
             .portuguese: "Pausa",
         ],
-        "tapToPause": [
-            .english: "tap to pause",
-            .french: "toucher pour pauser",
-            .spanish: "toca para pausar",
-            .portuguese: "toque para pausar",
-        ],
         "newGame": [
             .english: "New game?",
             .french: "Nouvelle partie ?",
@@ -101,10 +95,10 @@ enum Strings {
             .portuguese: "Siga-me no Twitter",
         ],
         "tryPinpin": [
-            .english: "Try Pinpin (my other app)",
-            .french: "Essayez Pinpin (mon autre app)",
-            .spanish: "Prueba Pinpin (mi otra app)",
-            .portuguese: "Experimente Pinpin (meu outro app)",
+            .english: "Pinpin (my other app)",
+            .french: "Pinpin (mon autre app)",
+            .spanish: "Pinpin (mi otra app)",
+            .portuguese: "Pinpin (meu outro app)",
         ],
         "noScoresYet": [
             .english: "No scores yet",
@@ -137,10 +131,10 @@ enum Strings {
             .portuguese: "Idioma",
         ],
         "swipeToPlay": [
-            .english: "Swipe the word to play",
-            .french: "Glissez le mot pour jouer",
-            .spanish: "Desliza la palabra para jugar",
-            .portuguese: "Deslize a palavra para jogar",
+            .english: "Swipe",
+            .french: "Swipe",
+            .spanish: "Swipe",
+            .portuguese: "Swipe",
         ],
         "noDefinition": [
             .english: "No definition found",

@@ -19,7 +19,7 @@ enum Wiktionary {
 
     private static func searchVariants(word: String, language: GameLanguage) async -> [String]? {
         let encoded = word.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? word
-        let urlString = "https://fr.wiktionary.org/w/api.php?action=query&list=search&srsearch=\(encoded)&srnamespace=0&srlimit=5&format=json&formatversion=2"
+        let urlString = "https://\(language.wikiCode).wiktionary.org/w/api.php?action=query&list=search&srsearch=\(encoded)&srnamespace=0&srlimit=5&format=json&formatversion=2"
 
         guard let url = URL(string: urlString) else { return nil }
 
@@ -34,7 +34,7 @@ enum Wiktionary {
 
     private static func fetchPage(word: String, language: GameLanguage) async -> [String]? {
         let encoded = word.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? word
-        let urlString = "https://fr.wiktionary.org/w/api.php?action=parse&page=\(encoded)&prop=wikitext&format=json&formatversion=2"
+        let urlString = "https://\(language.wikiCode).wiktionary.org/w/api.php?action=parse&page=\(encoded)&prop=wikitext&format=json&formatversion=2"
 
         guard let url = URL(string: urlString) else { return nil }
 
@@ -46,16 +46,27 @@ enum Wiktionary {
         return extractDefinitions(from: wikitext, language: language)
     }
 
+    private static func isLangSection(_ line: String) -> Bool {
+        line.contains("{{langue|") || line.contains("{{lengua|") || line.contains("{{língua|") ||
+        (line.hasPrefix("={{-") && line.hasSuffix("-}}="))
+    }
+
     private static func extractDefinitions(from wikitext: String, language: GameLanguage) -> [String]? {
         let lines = wikitext.components(separatedBy: "\n")
         var inTargetLang = false
         var definitions: [String] = []
+        let patterns = language.wikiSectionPatterns
+        let allPatterns = GameLanguage.allCases.flatMap(\.wikiSectionPatterns)
 
         for line in lines {
             let trimmed = line.trimmingCharacters(in: .whitespaces)
 
-            if trimmed.contains("{{langue|") {
-                if trimmed.contains("{{langue|\(language.wikiCode)}}") {
+            let isLangLine = isLangSection(trimmed) ||
+                (trimmed.hasPrefix("==") && !trimmed.hasPrefix("===") &&
+                 allPatterns.contains(where: { trimmed.contains($0) }))
+
+            if isLangLine {
+                if patterns.contains(where: { trimmed.contains($0) }) {
                     inTargetLang = true
                 } else if inTargetLang {
                     break
@@ -67,6 +78,15 @@ enum Wiktionary {
 
             if trimmed.hasPrefix("#") && !trimmed.hasPrefix("#*") && !trimmed.hasPrefix("#:") && !trimmed.hasPrefix("##") {
                 let raw = String(trimmed.dropFirst()).trimmingCharacters(in: .whitespaces)
+                let cleaned = cleanWikiMarkup(raw)
+                if !cleaned.isEmpty {
+                    definitions.append(cleaned)
+                }
+                if definitions.count >= 6 { break }
+            }
+
+            if trimmed.hasPrefix(";"), let colonIdx = trimmed.firstIndex(of: ":") {
+                let raw = String(trimmed[trimmed.index(after: colonIdx)...]).trimmingCharacters(in: .whitespaces)
                 let cleaned = cleanWikiMarkup(raw)
                 if !cleaned.isEmpty {
                     definitions.append(cleaned)

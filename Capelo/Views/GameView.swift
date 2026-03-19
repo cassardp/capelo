@@ -9,8 +9,7 @@ struct BonusAnimValues {
 struct GameView: View {
     @State private var viewModel = GameViewModel()
     @State private var barFillAnimating = false
-    @State private var showPauseHint = false
-    @State private var showLeaderboard = false
+@State private var showLeaderboard = false
     @State private var leaderboardStartTab = 0
     @State private var showRestartConfirm = false
     @State private var showWordList = false
@@ -143,16 +142,8 @@ struct GameView: View {
                     }
                 }
                 .animation(.easeOut(duration: 0.3), value: isUrgent)
-                .overlay(alignment: .top) {
-                    if showPauseHint && !viewModel.isPaused {
-                        Text(Strings.get("tapToPause", language: viewModel.language))
-                            .font(.caption.smallCaps())
-                            .foregroundStyle(textColor.opacity(0.5))
-                            .offset(y: -28)
-                            .transition(.opacity)
-                    }
-                }
-                .animation(.easeOut(duration: 0.5), value: showPauseHint)
+
+
                 .opacity(viewModel.isPaused ? 0.3 : 1)
                 .animation(.easeOut(duration: 0.3), value: viewModel.isPaused)
                 .padding(.vertical, 12)
@@ -165,14 +156,8 @@ struct GameView: View {
                 .onChange(of: viewModel.hasStarted) {
                     if viewModel.hasStarted {
                         withAnimation(.easeOut(duration: 0.4)) { barFillAnimating = true }
-                        showPauseHint = true
-                        Task {
-                            try? await Task.sleep(for: .seconds(1.5))
-                            showPauseHint = false
-                        }
                     } else {
                         barFillAnimating = false
-                        showPauseHint = false
                     }
                 }
 
@@ -196,6 +181,7 @@ struct GameView: View {
                         .frame(width: 60, height: 60)
                         .contentTransition(.symbolEffect(.replace.magic(fallback: .replace)))
                 }
+                .buttonStyle(CircleHighlightButtonStyle())
 
                 // Side icons
                 HStack {
@@ -374,5 +360,17 @@ struct GameView: View {
         case .some(false): return Palette.orangeRed
         case .none: return Palette.text(for: colorScheme)
         }
+    }
+}
+
+struct CircleHighlightButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(
+                Circle()
+                    .fill(Color.gray.opacity(configuration.isPressed ? 0.3 : 0))
+                    .frame(width: 56, height: 56)
+            )
+            .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
     }
 }

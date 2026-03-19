@@ -182,26 +182,15 @@ class GameViewModel {
     private func trySelectTile(at location: CGPoint, tileSize: CGFloat) {
         let centerThreshold = tileSize * 0.45
 
-        // No path yet: pick the closest tile center
+        // No path yet: pick the tile under the touch
         if selectedPath.isEmpty {
             let col = Int(location.x / tileSize)
             let row = Int(location.y / tileSize)
             guard row >= 0, row < engine.rows, col >= 0, col < engine.cols else { return }
-
-            var bestDist = CGFloat.greatestFiniteMagnitude
-            var bestR = row, bestC = col
-            for dr in -1...1 {
-                for dc in -1...1 {
-                    let r = row + dr, c = col + dc
-                    guard r >= 0, r < engine.rows, c >= 0, c < engine.cols else { continue }
-                    let cx = CGFloat(c) * tileSize + tileSize / 2
-                    let cy = CGFloat(r) * tileSize + tileSize / 2
-                    let d = hypot(location.x - cx, location.y - cy)
-                    if d < bestDist { bestDist = d; bestR = r; bestC = c }
-                }
-            }
-            guard bestDist <= centerThreshold else { return }
-            addTileToPath(row: bestR, col: bestC, tileSize: tileSize)
+            let cx = CGFloat(col) * tileSize + tileSize / 2
+            let cy = CGFloat(row) * tileSize + tileSize / 2
+            guard hypot(location.x - cx, location.y - cy) <= centerThreshold else { return }
+            addTileToPath(row: row, col: col, tileSize: tileSize)
             return
         }
 
@@ -219,6 +208,7 @@ class GameViewModel {
 
         for dr in -1...1 {
             for dc in -1...1 {
+                if dr == 0 && dc == 0 { continue }
                 let r = last.0 + dr, c = last.1 + dc
                 guard r >= 0, r < engine.rows, c >= 0, c < engine.cols else { continue }
                 let cx = CGFloat(c) * tileSize + tileSize / 2
