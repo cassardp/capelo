@@ -14,12 +14,24 @@ struct GridEngine {
         self.letterGenerator = LetterGenerator(language: language)
     }
 
+    func randomLetter(for row: Int, col: Int) -> Character {
+        for _ in 0..<10 {
+            let ch = letterGenerator.random()
+            let sameCount = neighbors(of: row, col: col)
+                .filter { $0.0 < grid.count && $0.1 < grid[$0.0].count }
+                .filter { grid[$0.0][$0.1].character == ch }
+                .count
+            if sameCount < 2 { return ch }
+        }
+        return letterGenerator.random()
+    }
+
     mutating func buildGrid() {
         grid = []
         for row in 0..<rows {
             var rowTiles: [Tile] = []
             for col in 0..<cols {
-                let char = letterGenerator.random()
+                let char = randomLetter(for: row, col: col)
                 rowTiles.append(Tile(
                     id: UUID(),
                     character: char,
@@ -113,7 +125,7 @@ struct GridEngine {
             }
             let emptyCount = rows - surviving.count
             for i in 0..<emptyCount {
-                let char = letterGenerator.random()
+                let char = randomLetter(for: i, col: col)
                 grid[i][col] = Tile(
                     id: UUID(),
                     character: char,
