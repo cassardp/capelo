@@ -195,16 +195,21 @@ class GameViewModel {
         }
 
         // Path exists: only consider tiles adjacent to the last selected tile
-        // Bias toward the drag direction so diagonals aren't stolen by orthogonal neighbors
+        // Use normalized distances + strong direction penalty to avoid cardinal bias
         let last = selectedPath.last!
         let lastCx = CGFloat(last.1) * tileSize + tileSize / 2
         let lastCy = CGFloat(last.0) * tileSize + tileSize / 2
         let dx = location.x - lastCx
         let dy = location.y - lastCy
+        let dragLen = hypot(dx, dy)
+
+        // Dead zone: ignore micro-movements near last tile center
+        guard dragLen > tileSize * 0.3 else { return }
 
         var bestScore = CGFloat.greatestFiniteMagnitude
-        var bestDist = CGFloat.greatestFiniteMagnitude
         var bestR = -1, bestC = -1
+
+        let sqrt2 = CGFloat(1.41421356)
 
         for dr in -1...1 {
             for dc in -1...1 {
@@ -215,25 +220,31 @@ class GameViewModel {
                 let cy = CGFloat(r) * tileSize + tileSize / 2
                 let d = hypot(location.x - cx, location.y - cy)
 
-                // Direction alignment: dot product between drag vector and tile vector
+                // Normalize distance: divide by theoretical distance to neighbor center
+                // so cardinal (1×tileSize) and diagonal (√2×tileSize) are on equal footing
+                let isDiag = abs(dr) == 1 && abs(dc) == 1
+                let theoreticalDist = isDiag ? tileSize * sqrt2 : tileSize
+                let normalizedDist = d / theoreticalDist
+
+                // Direction alignment via dot product
                 let tileDir = CGPoint(x: CGFloat(dc), y: CGFloat(dr))
                 let dirLen = hypot(tileDir.x, tileDir.y)
-                let dragLen = hypot(dx, dy)
-                var alignment: CGFloat = 0
-                if dirLen > 0 && dragLen > tileSize * 0.3 {
-                    alignment = (dx * tileDir.x + dy * tileDir.y) / (dragLen * dirLen)
-                }
+                let alignment = (dx * tileDir.x + dy * tileDir.y) / (dragLen * dirLen)
 
-                // Penalize tiles misaligned with drag direction (0 = no penalty, 1 = full penalty)
-                let penalty = max(0, 1 - alignment) * tileSize * 0.25
-                let score = d + penalty
+                // Strong penalty for misaligned tiles (0.45 instead of 0.25)
+                let penalty = max(0, 1 - alignment) * 0.45
+                let score = normalizedDist + penalty
 
-                if score < bestScore { bestScore = score; bestDist = d; bestR = r; bestC = c }
+                if score < bestScore { bestScore = score; bestR = r; bestC = c }
             }
         }
 
+        // Uniform threshold on raw distance, relaxed for diagonals by √2
         let isDiagonal = abs(bestR - last.0) == 1 && abs(bestC - last.1) == 1
-        let effectiveThreshold = isDiagonal ? centerThreshold * 1.3 : centerThreshold
+        let effectiveThreshold = isDiagonal ? centerThreshold * sqrt2 : centerThreshold
+        let bestCx = CGFloat(bestC) * tileSize + tileSize / 2
+        let bestCy = CGFloat(bestR) * tileSize + tileSize / 2
+        let bestDist = hypot(location.x - bestCx, location.y - bestCy)
         guard bestR >= 0, bestDist <= effectiveThreshold else { return }
         addTileToPath(row: bestR, col: bestC, tileSize: tileSize)
     }
