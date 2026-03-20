@@ -23,6 +23,14 @@ struct SplashView: View {
     @State private var tilesOpacity: Double = 0
     @State private var hintOpacity: Double = 0
 
+    // Demo swipe animation
+    @State private var demoIndices: [Int] = []
+    @State private var demoActive = false
+    @State private var userInteracted = false
+    @State private var demoFingerX: CGFloat = 0
+    @State private var demoFingerOpacity: Double = 0
+    @State private var cachedTileSize: CGFloat = 0
+
     private var bgColor: Color { Palette.background(for: colorScheme) }
     private var textColor: Color { Palette.text(for: colorScheme) }
 
@@ -74,6 +82,9 @@ struct SplashView: View {
             withAnimation(.easeIn(duration: 0.6).delay(0.8)) {
                 hintOpacity = 1.0
             }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
+                startDemoLoop()
+            }
         }
     }
 
@@ -82,29 +93,41 @@ struct SplashView: View {
             let tileSize = geo.size.width / 7
             let tilesWidth = tileSize * CGFloat(word.count)
             let leadingPad = (geo.size.width - tilesWidth) / 2
-            HStack(spacing: CGFloat(0)) {
-                ForEach(Array(word.enumerated()), id: \.offset) { index, char in
-                    let offsets = index < explosionOffsets.count ? explosionOffsets[index] : (x: CGFloat(0), y: CGFloat(0), rotation: 0.0)
-                    SplashTileView(
-                        character: char,
-                        isSelected: selectedIndices.contains(index),
-                        state: tileState(for: index),
-                        size: tileSize,
-                        colorScheme: colorScheme
-                    )
-                    .offset(x: exploding ? offsets.x : 0, y: exploding ? offsets.y : 0)
-                    .rotationEffect(.degrees(exploding ? offsets.rotation : 0))
-                    .scaleEffect(exploding ? 0.4 : 1.0)
-                    .opacity(exploding ? 0 : 1)
+            ZStack {
+                Color.clear.onAppear { cachedTileSize = tileSize }
+                HStack(spacing: CGFloat(0)) {
+                    ForEach(Array(word.enumerated()), id: \.offset) { index, char in
+                        let offsets = index < explosionOffsets.count ? explosionOffsets[index] : (x: CGFloat(0), y: CGFloat(0), rotation: 0.0)
+                        let isActive = selectedIndices.contains(index) || demoIndices.contains(index)
+                        SplashTileView(
+                            character: char,
+                            isSelected: isActive,
+                            state: demoActive ? (demoIndices.count == word.count ? .valid : .neutral) : tileState(for: index),
+                            size: tileSize,
+                            colorScheme: colorScheme
+                        )
+                        .offset(x: exploding ? offsets.x : 0, y: exploding ? offsets.y : 0)
+                        .rotationEffect(.degrees(exploding ? offsets.rotation : 0))
+                        .scaleEffect(exploding ? 0.4 : 1.0)
+                        .opacity(exploding ? 0 : 1)
+                    }
                 }
+                .position(x: geo.size.width / 2, y: geo.size.height / 2)
+
+                // Ghost finger indicator
+                Circle()
+                    .fill(textColor.opacity(0.18))
+                    .frame(width: tileSize * 0.7, height: tileSize * 0.7)
+                    .position(x: leadingPad + demoFingerX, y: geo.size.height / 2)
+                    .opacity(demoFingerOpacity)
             }
-            .position(x: geo.size.width / 2, y: geo.size.height / 2)
             .offset(y: tilesOffset)
             .opacity(tilesOpacity)
             .contentShape(Rectangle())
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { value in
+                        cancelDemo()
                         guard !completed, !failed else { return }
                         let adjustedX = value.location.x - leadingPad
                         let adjusted = CGPoint(x: adjustedX, y: value.location.y)
@@ -166,6 +189,52 @@ struct SplashView: View {
                 completeSplash()
             }
         }
+    }
+
+    private func startDemoLoop() {
+        guard !userInteracted, !completed else { return }
+        demoActive = true
+        demoIndices = []
+
+        let tileCount = word.count
+        let tileSize = cachedTileSize
+        guard tileSize > 0 else { return }
+        let stepDuration = 0.15
+
+        // Position finger at first tile center
+        demoFingerX = tileSize / 2
+        withAnimation(.easeOut(duration: 0.25)) {
+            demoFingerOpacity = 1.0
+        }
+
+        for i in 0..<tileCount {
+            DispatchQueue.main.asyncAfter(deadline: .now() + stepDuration * Double(i)) {
+                guard demoActive else { return }
+                withAnimation(.easeInOut(duration: stepDuration)) {
+                    demoFingerX = tileSize * CGFloat(i) + tileSize / 2
+                    demoIndices.append(i)
+                }
+            }
+        }
+
+        let totalSwipe = stepDuration * Double(tileCount)
+        DispatchQueue.main.asyncAfter(deadline: .now() + totalSwipe + 0.6) {
+            guard demoActive else { return }
+            withAnimation(.easeOut(duration: 0.3)) {
+                demoIndices = []
+                demoFingerOpacity = 0
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                startDemoLoop()
+            }
+        }
+    }
+
+    private func cancelDemo() {
+        userInteracted = true
+        demoActive = false
+        demoIndices = []
+        demoFingerOpacity = 0
     }
 
     private func failSplash() {
