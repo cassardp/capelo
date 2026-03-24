@@ -40,7 +40,7 @@ enum API {
 
     static func loadScores() async throws -> [ScoreEntry] {
         let (data, response) = try await URLSession.shared.data(
-            from: base.appending(path: "scores").appending(queryItems: [URLQueryItem(name: "game", value: "capelo")]))
+            from: base.appending(path: "scores").appending(queryItems: [URLQueryItem(name: "game", value: "capelo"), URLQueryItem(name: "period", value: "monthly")]))
         guard let http = response as? HTTPURLResponse, 200...299 ~= http.statusCode else {
             throw APIError.serverError
         }
