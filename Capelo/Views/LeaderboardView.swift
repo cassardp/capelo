@@ -326,9 +326,9 @@ struct LeaderboardView: View {
 
                     VStack(spacing: 10) {
                         infoLink(
-                            icon: "at",
-                            label: Strings.get("followTwitter", language: language),
-                            url: "https://x.com/patricecassard"
+                            icon: "circle.grid.3x3.fill",
+                            label: Strings.get("tryGribli", language: language),
+                            url: "https://apps.apple.com/us/app/gribli/id6759824235"
                         )
                         infoLink(
                             icon: "pin.fill",
@@ -336,9 +336,9 @@ struct LeaderboardView: View {
                             url: "https://apps.apple.com/fr/app/pinpin-mobile/id6748907154"
                         )
                         infoLink(
-                            icon: "circle.grid.3x3.fill",
-                            label: Strings.get("tryGribli", language: language),
-                            url: "https://apps.apple.com/us/app/gribli/id6759824235"
+                            icon: "at",
+                            label: Strings.get("followTwitter", language: language),
+                            url: "https://x.com/patricecassard"
                         )
                     }
 

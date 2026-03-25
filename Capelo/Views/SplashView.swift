@@ -22,6 +22,7 @@ struct SplashView: View {
     @State private var tilesOffset: CGFloat = 40
     @State private var tilesOpacity: Double = 0
     @State private var hintOpacity: Double = 0
+    @State private var hintPulsing = false
 
     // Demo swipe animation
     @State private var demoIndices: [Int] = []
@@ -64,9 +65,11 @@ struct SplashView: View {
             splashTiles
 
             Text(Strings.get("swipeToPlay", language: language))
-                .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(textColor.opacity(0.4))
+                .font(.system(size: 17, weight: .semibold, design: .rounded))
+                .foregroundStyle(textColor.opacity(0.6))
                 .opacity(hintOpacity)
+                .scaleEffect(hintPulsing ? 1.08 : 1.0)
+                .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: hintPulsing)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(bgColor.ignoresSafeArea())
@@ -82,7 +85,10 @@ struct SplashView: View {
             withAnimation(.easeIn(duration: 0.6).delay(0.8)) {
                 hintOpacity = 1.0
             }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                hintPulsing = true
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
                 startDemoLoop()
             }
         }
@@ -114,11 +120,11 @@ struct SplashView: View {
                 }
                 .position(x: geo.size.width / 2, y: geo.size.height / 2)
 
-                // Ghost finger indicator
+                // Ghost finger indicator (offset half a tile to the left so it's visible)
                 Circle()
                     .fill(textColor.opacity(0.18))
                     .frame(width: tileSize * 0.7, height: tileSize * 0.7)
-                    .position(x: leadingPad + demoFingerX, y: geo.size.height / 2)
+                    .position(x: leadingPad + demoFingerX, y: geo.size.height / 2 + tileSize * 0.3)
                     .opacity(demoFingerOpacity)
             }
             .offset(y: tilesOffset)
@@ -199,32 +205,36 @@ struct SplashView: View {
         let tileCount = word.count
         let tileSize = cachedTileSize
         guard tileSize > 0 else { return }
-        let stepDuration = 0.15
+        let totalDuration = 0.6
 
         // Position finger at first tile center
         demoFingerX = tileSize / 2
+        demoIndices = [0]
         withAnimation(.easeOut(duration: 0.25)) {
             demoFingerOpacity = 1.0
         }
 
-        for i in 0..<tileCount {
-            DispatchQueue.main.asyncAfter(deadline: .now() + stepDuration * Double(i)) {
+        // Single continuous animation for the finger
+        withAnimation(.easeInOut(duration: totalDuration).delay(0.25)) {
+            demoFingerX = tileSize * CGFloat(tileCount - 1) + tileSize / 2
+        }
+
+        // Add tiles as the finger passes over them
+        for i in 1..<tileCount {
+            let delay = 0.25 + totalDuration * Double(i) / Double(tileCount - 1)
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
                 guard demoActive else { return }
-                withAnimation(.easeInOut(duration: stepDuration)) {
-                    demoFingerX = tileSize * CGFloat(i) + tileSize / 2
-                    demoIndices.append(i)
-                }
+                demoIndices.append(i)
             }
         }
 
-        let totalSwipe = stepDuration * Double(tileCount)
-        DispatchQueue.main.asyncAfter(deadline: .now() + totalSwipe + 0.6) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25 + totalDuration + 0.8) {
             guard demoActive else { return }
             withAnimation(.easeOut(duration: 0.3)) {
                 demoIndices = []
                 demoFingerOpacity = 0
             }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
                 startDemoLoop()
             }
         }
