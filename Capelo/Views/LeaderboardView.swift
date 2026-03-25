@@ -335,6 +335,11 @@ struct LeaderboardView: View {
                             label: Strings.get("tryPinpin", language: language),
                             url: "https://apps.apple.com/fr/app/pinpin-mobile/id6748907154"
                         )
+                        infoLink(
+                            icon: "circle.grid.3x3.fill",
+                            label: Strings.get("tryGribli", language: language),
+                            url: "https://apps.apple.com/us/app/gribli/id6759824235"
+                        )
                     }
 
                     Text("Version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "–")")

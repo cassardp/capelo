@@ -95,10 +95,16 @@ enum Strings {
             .portuguese: "Siga-me no Twitter",
         ],
         "tryPinpin": [
-            .english: "Pinpin (my other app)",
-            .french: "Pinpin (mon autre app)",
-            .spanish: "Pinpin (mi otra app)",
-            .portuguese: "Pinpin (meu outro app)",
+            .english: "Try Pinpin",
+            .french: "Essayer Pinpin",
+            .spanish: "Probar Pinpin",
+            .portuguese: "Experimentar Pinpin",
+        ],
+        "tryGribli": [
+            .english: "Try Gribli",
+            .french: "Essayer Gribli",
+            .spanish: "Probar Gribli",
+            .portuguese: "Experimentar Gribli",
         ],
         "noScoresYet": [
             .english: "No scores yet",
