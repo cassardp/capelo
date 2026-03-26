@@ -98,7 +98,7 @@ class GameViewModel {
         Task {
             try? await API.submitScore(
                 playerName: playerName,
-                score: score,
+                score: max(score, bestScore),
                 link: playerLink.isEmpty ? nil : playerLink,
                 deviceId: deviceId
             )
