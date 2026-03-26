@@ -21,8 +21,6 @@ Swipe across a 7×7 letter grid to form words, trigger bomb chain reactions, and
 ## Tech
 
 - Swift / SwiftUI — iOS 26.2+
-- Cloudflare Workers + D1 for the leaderboard API
-- Zero third-party dependencies on the client (URLSession + CryptoKit)
 
 ## License
 
