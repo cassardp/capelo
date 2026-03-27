@@ -301,15 +301,16 @@ struct SplashTileView: View {
     let state: SplashTileState
     let size: CGFloat
     let colorScheme: ColorScheme
+    @Environment(PaletteStore.self) private var palette
 
     private var bg: Color {
         guard isSelected else {
             return colorScheme == .dark ? Palette.sand.opacity(0.12) : Palette.sand
         }
         switch state {
-        case .valid: return Palette.olive
-        case .invalid: return Palette.orangeRed
-        case .neutral: return Palette.taupe
+        case .valid: return palette.olive
+        case .invalid: return palette.orangeRed
+        case .neutral: return palette.taupe
         }
     }
 

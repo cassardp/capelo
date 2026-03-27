@@ -19,6 +19,7 @@ struct LeaderboardView: View {
     var onSave: (() async -> Void)?
 
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(PaletteStore.self) private var palette
     @State private var entries: [ScoreEntry] = []
     @State private var isLoading = true
     @State private var selectedTab: Int
@@ -43,12 +44,12 @@ struct LeaderboardView: View {
         self.onSave = onSave
     }
 
-    private let tabIcons = [["star", "star"], ["signature", "signature"], ["info", "info"]]
+    private let tabIcons = [["star", "star"], ["signature", "signature"], ["info", "info"], ["slider.horizontal.3", "slider.horizontal.3"]]
 
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 32) {
-                ForEach(0..<3) { i in
+                ForEach(0..<4) { i in
                     Button {
                         withAnimation { selectedTab = i }
                     } label: {
@@ -66,6 +67,7 @@ struct LeaderboardView: View {
                 scoresPage.tag(0)
                 profilePage.tag(1)
                 infoPage.tag(2)
+                SettingsView().tag(3)
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
             .ignoresSafeArea(edges: .bottom)
@@ -141,7 +143,7 @@ struct LeaderboardView: View {
         return linkWrapper(entry) {
             HStack(spacing: 12) {
                 Circle()
-                    .fill(isHighlighted ? Palette.orangeRed : (hasLink ? Palette.olive : textColor.opacity(0.12)))
+                    .fill(isHighlighted ? palette.orangeRed : (hasLink ? palette.olive : textColor.opacity(0.12)))
                     .frame(width: 36, height: 36)
                     .overlay(
                         Text("\(rank)")
@@ -169,7 +171,7 @@ struct LeaderboardView: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
-            .background((isHighlighted ? Palette.orangeRed.opacity(0.12) : textColor.opacity(0.06)), in: RoundedRectangle(cornerRadius: 12))
+            .background((isHighlighted ? palette.orangeRed.opacity(0.12) : textColor.opacity(0.06)), in: RoundedRectangle(cornerRadius: 12))
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 5)
@@ -275,7 +277,7 @@ struct LeaderboardView: View {
 
     private func profileField(icon: String, text: Binding<String>, placeholder: String, keyboard: UIKeyboardType = .default, capitalization: TextInputAutocapitalization = .never, status: FieldStatus? = nil, highlighted: Bool? = nil, focusBinding: FocusState<Field?>.Binding? = nil, focusValue: Field? = nil) -> some View {
         let filled = highlighted ?? !text.wrappedValue.isEmpty
-        let circleColor: Color = status == .error ? Palette.orangeRed : (filled ? Palette.olive : textColor.opacity(0.12))
+        let circleColor: Color = status == .error ? palette.orangeRed : (filled ? palette.olive : textColor.opacity(0.12))
         let iconColor: Color = status == .error ? Palette.cream : (filled ? Palette.cream : textColor.opacity(0.5))
         return HStack(spacing: 12) {
             Circle()
@@ -297,7 +299,7 @@ struct LeaderboardView: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
-        .background((status == .error ? Palette.orangeRed.opacity(0.08) : textColor.opacity(0.06)), in: RoundedRectangle(cornerRadius: 12))
+        .background((status == .error ? palette.orangeRed.opacity(0.08) : textColor.opacity(0.06)), in: RoundedRectangle(cornerRadius: 12))
         .animation(.easeInOut(duration: 0.2), value: status == .error)
         .animation(.easeOut(duration: 0.2), value: filled)
     }

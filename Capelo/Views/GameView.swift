@@ -14,6 +14,7 @@ struct GameView: View {
     @State private var showRestartConfirm = false
     @State private var showWordList = false
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(PaletteStore.self) private var palette
 
     private var bgColor: Color { Palette.background(for: colorScheme) }
     private var textColor: Color { Palette.text(for: colorScheme) }
@@ -28,7 +29,7 @@ struct GameView: View {
                     .contentTransition(.numericText())
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)
-                    .background(viewModel.isNewBest ? Palette.orangeRed : (colorScheme == .dark ? textColor.opacity(0.12) : Palette.sand), in: Capsule())
+                    .background(viewModel.isNewBest ? palette.orangeRed : (colorScheme == .dark ? textColor.opacity(0.12) : Palette.sand), in: Capsule())
                     .keyframeAnimator(initialValue: CGFloat(1.0), trigger: viewModel.isNewBest) { content, scale in
                         content.scaleEffect(scale)
                     } keyframes: { _ in
@@ -63,7 +64,7 @@ struct GameView: View {
                 } else if !viewModel.bonusText.isEmpty {
                     Text(viewModel.bonusText)
                         .font(.system(size: 44, weight: .heavy))
-                        .foregroundStyle(Palette.orangeRed)
+                        .foregroundStyle(palette.orangeRed)
                         .keyframeAnimator(
                             initialValue: BonusAnimValues(),
                             trigger: viewModel.bonusTrigger
@@ -110,12 +111,12 @@ struct GameView: View {
 
             // Timer bar
             RoundedRectangle(cornerRadius: 3)
-                .fill(isUrgent && !viewModel.isPaused ? Palette.orangeRed.opacity(0.15) : textColor.opacity(0.15))
+                .fill(isUrgent && !viewModel.isPaused ? palette.orangeRed.opacity(0.15) : textColor.opacity(0.15))
                 .frame(height: 6)
                 .overlay(alignment: .leading) {
                     GeometryReader { barGeo in
                         RoundedRectangle(cornerRadius: 3)
-                            .fill(isUrgent && !viewModel.isPaused ? Palette.orangeRed : textColor)
+                            .fill(isUrgent && !viewModel.isPaused ? palette.orangeRed : textColor)
                             .frame(width: barGeo.size.width * (barFillAnimating ? min(viewModel.timeRemaining / 90, 1.0) : 0))
                     }
                 }
@@ -131,7 +132,7 @@ struct GameView: View {
                             .contentTransition(.numericText())
                             .animation(.spring(duration: 0.3), value: Int(viewModel.timeRemaining))
                             .padding(16)
-                            .background(Palette.orangeRed, in: Circle())
+                            .background(palette.orangeRed, in: Circle())
                             .keyframeAnimator(initialValue: CGFloat(1.0), trigger: Int(viewModel.timeRemaining)) { content, scale in
                                 content.scaleEffect(scale)
                             } keyframes: { _ in
@@ -313,7 +314,7 @@ struct GameView: View {
                                 .foregroundStyle(bgColor)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 12)
-                                .background(Palette.orangeRed, in: RoundedRectangle(cornerRadius: 12))
+                                .background(palette.orangeRed, in: RoundedRectangle(cornerRadius: 12))
                         }
                     }
                 }
@@ -337,6 +338,7 @@ struct GameView: View {
                     UserDefaults.standard.set(viewModel.playerLink, forKey: "playerLink")
                 }
             )
+            .preferredColorScheme(palette.appearanceMode.colorScheme)
         }
         .sheet(isPresented: $showWordList) {
             WordListView(words: viewModel.foundWords)
@@ -356,8 +358,8 @@ struct GameView: View {
 
     private var wordColor: Color {
         switch viewModel.lastWordValid {
-        case .some(true): return Palette.olive
-        case .some(false): return Palette.orangeRed
+        case .some(true): return palette.olive
+        case .some(false): return palette.orangeRed
         case .none: return Palette.text(for: colorScheme)
         }
     }

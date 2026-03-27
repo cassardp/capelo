@@ -4,6 +4,7 @@ struct WordListView: View {
     let words: [String]
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.gameLanguage) private var language
+    @Environment(PaletteStore.self) private var palette
     @State private var showList = false
     @State private var lookupWord: String?
     @State private var definitions: [String: [String]?] = [:]
@@ -98,7 +99,7 @@ struct WordListView: View {
         Button { lookupDefinition(word: word) } label: {
             HStack(spacing: 12) {
                 Circle()
-                    .fill(Palette.olive)
+                    .fill(palette.olive)
                     .frame(width: 36, height: 36)
                     .overlay(
                         Text("\(rank)")

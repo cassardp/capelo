@@ -15,21 +15,22 @@ struct TileView: View {
     let isGameOver: Bool
     let size: CGFloat
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(PaletteStore.self) private var palette
 
     @State private var shakeTrigger = false
     @State private var wiggleTrigger = false
 
     private var tileBackground: Color {
         if isPaused { return colorScheme == .dark ? Palette.sand.opacity(0.12) : Palette.sand }
-        if isBombFlashed { return Palette.orangeRed }
+        if isBombFlashed { return palette.orangeRed }
         if isSelected {
             switch wordValid {
-            case .some(true): return Palette.olive
-            case .some(false): return Palette.orangeRed
-            case .none: return Palette.taupe
+            case .some(true): return palette.olive
+            case .some(false): return palette.orangeRed
+            case .none: return palette.taupe
             }
         }
-        if tile.isBomb { return Palette.orangeRed.opacity(0.15) }
+        if tile.isBomb { return palette.orangeRed.opacity(0.15) }
         return colorScheme == .dark ? Palette.sand.opacity(0.12) : Palette.sand
     }
 
@@ -40,7 +41,7 @@ struct TileView: View {
     private var tileText: Color {
         if isBombFlashed { return colorScheme == .dark ? Palette.warmBlack : Palette.cream }
         if isSelected { return Palette.cream }
-        if tile.isBomb { return Palette.orangeRed }
+        if tile.isBomb { return palette.orangeRed }
         return colorScheme == .dark ? Palette.sand : Palette.espresso
     }
 

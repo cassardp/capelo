@@ -25,12 +25,13 @@ struct SelectionLine: Shape {
 struct GridView: View {
     @Bindable var viewModel: GameViewModel
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(PaletteStore.self) private var palette
 
     private var selectionColor: Color {
         switch viewModel.lastWordValid {
-        case .some(true): return Palette.olive
-        case .some(false): return Palette.orangeRed
-        case .none: return Palette.taupe
+        case .some(true): return palette.olive
+        case .some(false): return palette.orangeRed
+        case .none: return palette.taupe
         }
     }
 

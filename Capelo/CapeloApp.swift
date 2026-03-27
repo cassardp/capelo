@@ -9,11 +9,14 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 @main
 struct CapeloApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    @State private var paletteStore = PaletteStore()
 
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .fontDesign(.rounded)
+                .environment(paletteStore)
+                .preferredColorScheme(paletteStore.appearanceMode.colorScheme)
         }
     }
 }
