@@ -11,5 +11,8 @@ xcuserdata/
 *.swp
 *~
 
+# Secrets
+Capelo/Game/Secrets.swift
+
 # Claude Code
 .claude/
