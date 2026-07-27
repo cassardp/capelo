@@ -29,11 +29,7 @@ Entry point: `CapeloApp.swift` → `ContentView.swift` (splash overlay) → `Gam
 
 ## Key mechanics
 
-- Scoring: `100 × length × max(1, length-3) × (hasBomb ? 3 : 1)` + 50 pts per bomb chain tile
-- Timer: 45s base, +5-8s per valid word (+3s per letter above 3, +8s if bomb), max 90s
-- Bombs: spawn from 4+ letter words (count scales with length), 3×3 blast radius
-- Drag: 8-directional adjacency, 40% radius threshold, backtrack support
-- Haptics: light (tile touch), medium (invalid), heavy (valid word + bombs)
+Scoring, timer bonuses, bomb spawning and drag thresholds are game-balance values that get tuned often: read them in `GameViewModel` / `GridEngine`, do not trust any doc for them.
 
 ## Networking & API
 
