@@ -1,3 +1,5 @@
+> **This page has moved to [misericode.com/capelo/terms](https://misericode.com/capelo/terms).**
+
 # Terms of Service
 
 **Last updated:** March 2025

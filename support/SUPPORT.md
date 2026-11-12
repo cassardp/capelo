@@ -1,3 +1,5 @@
+> **This page has moved to [misericode.com/capelo/support](https://misericode.com/capelo/support).**
+
 # Capelo Support
 
 ## Frequently Asked Questions

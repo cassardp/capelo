@@ -1,3 +1,5 @@
+> **This page has moved to [misericode.com/capelo/privacy](https://misericode.com/capelo/privacy).**
+
 # Privacy Policy
 
 **Last updated:** March 2025
